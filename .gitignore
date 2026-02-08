@@ -3,6 +3,14 @@
 # dependencies
 node_modules/
 
+# Yarn (Berry)
+.pnp.*
+.yarn/*
+!.yarn/releases
+!.yarn/plugins
+!.yarn/sdks
+!.yarn/versions
+
 # Expo
 .expo/
 dist/
@@ -25,6 +33,10 @@ expo-env.d.ts
 npm-debug.*
 yarn-debug.*
 yarn-error.*
+
+# tests
+coverage/
+e2e/artifacts/
 
 # macOS
 .DS_Store
