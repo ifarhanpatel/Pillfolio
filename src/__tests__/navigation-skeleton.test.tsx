@@ -1,0 +1,52 @@
+import { render } from '@testing-library/react-native';
+
+import { PatientsScreen } from '@/src/screens/PatientsScreen';
+import { PrescriptionDetailScreen } from '@/src/screens/PrescriptionDetailScreen';
+import { PrescriptionFormScreen } from '@/src/screens/PrescriptionFormScreen';
+import { SettingsScreen } from '@/src/screens/SettingsScreen';
+import { TimelineScreen } from '@/src/screens/TimelineScreen';
+
+describe('Navigation skeleton screens', () => {
+  it('renders Patients screen CTA', () => {
+    const { getByText, getByTestId } = render(<PatientsScreen />);
+
+    expect(getByText('Patients')).toBeTruthy();
+    expect(getByTestId('patients-cta')).toBeTruthy();
+  });
+
+  it('renders Timeline screen placeholder', () => {
+    const { getByText, getByTestId } = render(<TimelineScreen />);
+
+    expect(getByText('Timeline')).toBeTruthy();
+    expect(getByTestId('timeline-search-placeholder')).toBeTruthy();
+  });
+
+  it('renders Add Prescription form content', () => {
+    const { getByText, getByTestId } = render(<PrescriptionFormScreen mode="add" />);
+
+    expect(getByText('Add Prescription')).toBeTruthy();
+    expect(getByTestId('prescription-form-photo')).toBeTruthy();
+    expect(getByTestId('prescription-form-fields')).toBeTruthy();
+  });
+
+  it('renders Edit Prescription form content', () => {
+    const { getByText } = render(<PrescriptionFormScreen mode="edit" />);
+
+    expect(getByText('Edit Prescription')).toBeTruthy();
+  });
+
+  it('renders Prescription detail actions', () => {
+    const { getByText, getByTestId } = render(<PrescriptionDetailScreen />);
+
+    expect(getByText('Prescription Detail')).toBeTruthy();
+    expect(getByTestId('prescription-detail-actions')).toBeTruthy();
+  });
+
+  it('renders Settings privacy content', () => {
+    const { getByText, getByTestId } = render(<SettingsScreen />);
+
+    expect(getByText('Settings')).toBeTruthy();
+    expect(getByText('Privacy')).toBeTruthy();
+    expect(getByTestId('settings-about')).toBeTruthy();
+  });
+});
