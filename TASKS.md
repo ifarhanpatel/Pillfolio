@@ -154,6 +154,12 @@ Dependencies:
 
 ---
 
+## Backlog
+- Upgrade `SqlDriver.runAsync` to return write metadata (e.g., `changes`, `lastInsertRowId`) instead of `Promise<void>`.
+- Update driver implementations (`expo` async/sync adapters), mocks, and unit tests to use the returned metadata for write-success assertions.
+
+---
+
 ## Testing Stack Recommendation (Concrete)
 - Unit/Integration: Jest + React Native Testing Library (RNTL).
 - E2E: Detox.
