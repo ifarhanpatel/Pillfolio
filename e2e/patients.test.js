@@ -1,5 +1,5 @@
 describe("Patient CRUD flows", () => {
-  beforeAll(async () => {
+  beforeEach(async () => {
     await device.launchApp({ newInstance: true });
   });
 
@@ -30,7 +30,9 @@ describe("Patient CRUD flows", () => {
     await expect(element(by.text("Delete Me"))).toBeVisible();
 
     await element(by.id("patient-delete-delete-me")).tap();
-    await expect(element(by.id("delete-patient-modal"))).toBeVisible();
+    await waitFor(element(by.id("delete-patient-delete-all-button")))
+      .toBeVisible()
+      .withTimeout(5000);
     await element(by.id("delete-patient-delete-all-button")).tap();
 
     await expect(element(by.id("patients-screen"))).toBeVisible();
@@ -49,7 +51,9 @@ describe("Patient CRUD flows", () => {
     await expect(element(by.text("Reassign Target"))).toBeVisible();
 
     await element(by.id("patient-delete-reassign-source")).tap();
-    await expect(element(by.id("delete-patient-modal"))).toBeVisible();
+    await waitFor(element(by.id("delete-patient-reassign-button")))
+      .toBeVisible()
+      .withTimeout(5000);
     await element(by.id("delete-patient-reassign-button")).tap();
 
     await expect(element(by.text("Reassign Target"))).toBeVisible();
