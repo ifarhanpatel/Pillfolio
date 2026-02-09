@@ -15,6 +15,13 @@ describe("validation", () => {
     expect(result.errors).toEqual({});
   });
 
+  test("validatePatientInput rejects empty gender when provided", () => {
+    const result = validatePatientInput({ name: "Alex", gender: " " });
+
+    expect(result.valid).toBe(false);
+    expect(result.errors.gender).toBe("Gender cannot be empty.");
+  });
+
   test("validatePrescriptionInput checks required fields", () => {
     const result = validatePrescriptionInput({
       doctorName: " ",

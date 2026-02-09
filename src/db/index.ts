@@ -8,6 +8,9 @@ export const openDb = async (): Promise<SqlDriver> => {
 
 export const initializeDb = async (driver: SqlDriver): Promise<void> => {
   await driver.runAsync("PRAGMA foreign_keys = ON;");
+  await driver.runAsync(
+    "CREATE TABLE IF NOT EXISTS schema_migrations (id TEXT PRIMARY KEY NOT NULL, appliedAt TEXT NOT NULL);"
+  );
 
   const applied = await driver.getAllAsync<{ id: string }>(
     "SELECT id FROM schema_migrations ORDER BY id ASC;"

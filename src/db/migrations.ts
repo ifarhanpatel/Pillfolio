@@ -14,4 +14,8 @@ export const MIGRATIONS: Migration[] = [
       "CREATE INDEX IF NOT EXISTS prescriptions_visitDate_idx ON prescriptions(visitDate);",
     ],
   },
+  {
+    id: "002_add_patient_gender",
+    up: ["ALTER TABLE patients ADD COLUMN gender TEXT;"],
+  },
 ];

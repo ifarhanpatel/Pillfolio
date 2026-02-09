@@ -24,6 +24,17 @@ const mapPrescriptionRow = (row: Prescription & { tagsJson?: string }): Prescrip
   };
 };
 
+const requirePrescription = (
+  prescription: Prescription | null,
+  action: string
+): Prescription => {
+  if (!prescription) {
+    throw new Error(`Prescription ${action} verification failed.`);
+  }
+
+  return prescription;
+};
+
 export const createPrescription = async (
   driver: SqlDriver,
   input: NewPrescriptionInput,
@@ -52,19 +63,10 @@ export const createPrescription = async (
     ]
   );
 
-  return {
-    id,
-    patientId: input.patientId,
-    photoUri: input.photoUri,
-    doctorName: input.doctorName.trim(),
-    doctorSpecialty,
-    condition: input.condition.trim(),
-    tags: input.tags,
-    visitDate: input.visitDate,
-    notes,
-    createdAt: timestamp,
-    updatedAt: timestamp,
-  };
+  return requirePrescription(
+    await getPrescriptionById(driver, id),
+    "insert"
+  );
 };
 
 export const getPrescriptionById = async (
@@ -127,7 +129,7 @@ export const updatePrescription = async (
     ]
   );
 
-  return updated;
+  return requirePrescription(await getPrescriptionById(driver, id), "update");
 };
 
 export const deletePrescription = async (

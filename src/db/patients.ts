@@ -5,7 +5,16 @@ import { createId } from "../utils/id";
 const mapPatientRow = (row: Patient): Patient => ({
   ...row,
   relationship: row.relationship ?? null,
+  gender: row.gender ?? null,
 });
+
+const requirePatient = (patient: Patient | null, action: string): Patient => {
+  if (!patient) {
+    throw new Error(`Patient ${action} verification failed.`);
+  }
+
+  return patient;
+};
 
 export const createPatient = async (
   driver: SqlDriver,
@@ -15,19 +24,14 @@ export const createPatient = async (
   const id = createId();
   const timestamp = now();
   const relationship = input.relationship ?? null;
+  const gender = input.gender ?? null;
 
   await driver.runAsync(
-    "INSERT INTO patients (id, name, relationship, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?);",
-    [id, input.name.trim(), relationship, timestamp, timestamp]
+    "INSERT INTO patients (id, name, relationship, gender, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?);",
+    [id, input.name.trim(), relationship, gender, timestamp, timestamp]
   );
 
-  return {
-    id,
-    name: input.name.trim(),
-    relationship,
-    createdAt: timestamp,
-    updatedAt: timestamp,
-  };
+  return requirePatient(await getPatientById(driver, id), "insert");
 };
 
 export const getPatientById = async (
@@ -56,15 +60,28 @@ export const updatePatient = async (
   input: UpdatePatientInput,
   now: () => string = () => new Date().toISOString()
 ): Promise<Patient | null> => {
+  const existing = await getPatientById(driver, id);
+  if (!existing) {
+    return null;
+  }
+
   const timestamp = now();
-  const relationship = input.relationship ?? null;
+  const hasRelationship = Object.prototype.hasOwnProperty.call(
+    input,
+    "relationship"
+  );
+  const hasGender = Object.prototype.hasOwnProperty.call(input, "gender");
+  const relationship = hasRelationship
+    ? input.relationship ?? null
+    : existing.relationship;
+  const gender = hasGender ? input.gender ?? null : existing.gender;
 
   await driver.runAsync(
-    "UPDATE patients SET name = ?, relationship = ?, updatedAt = ? WHERE id = ?;",
-    [input.name.trim(), relationship, timestamp, id]
+    "UPDATE patients SET name = ?, relationship = ?, gender = ?, updatedAt = ? WHERE id = ?;",
+    [input.name.trim(), relationship, gender, timestamp, id]
   );
 
-  return getPatientById(driver, id);
+  return requirePatient(await getPatientById(driver, id), "update");
 };
 
 export const deletePatient = async (

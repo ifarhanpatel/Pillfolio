@@ -24,9 +24,15 @@ const addError = (
 export const validatePatientInput = (input: NewPatientInput): ValidationResult => {
   let result = emptyResult();
   const name = input.name?.trim();
+  const hasGender = Object.prototype.hasOwnProperty.call(input, "gender");
+  const gender = input.gender?.trim();
 
   if (!name) {
     result = addError(result, "name", "Name is required.");
+  }
+
+  if (hasGender && !gender) {
+    result = addError(result, "gender", "Gender cannot be empty.");
   }
 
   return result;

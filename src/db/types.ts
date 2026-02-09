@@ -2,6 +2,7 @@ export type Patient = {
   id: string;
   name: string;
   relationship: string | null;
+  gender: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -23,11 +24,13 @@ export type Prescription = {
 export type NewPatientInput = {
   name: string;
   relationship?: string | null;
+  gender?: string | null;
 };
 
 export type UpdatePatientInput = {
   name: string;
   relationship?: string | null;
+  gender?: string | null;
 };
 
 export type NewPrescriptionInput = {

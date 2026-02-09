@@ -29,6 +29,9 @@ describe("prescriptions", () => {
     expect(prescription.patientId).toBe(patient.id);
     expect(prescription.tags).toEqual(["bp", "daily"]);
     expect(driver.prescriptions).toHaveLength(1);
+    expect(await getPrescriptionById(driver, prescription.id)).toEqual(
+      prescription
+    );
   });
 
   test("listPrescriptionsByPatient orders by visitDate desc", async () => {
@@ -106,6 +109,7 @@ describe("prescriptions", () => {
     expect(updated?.tags).toEqual(["bp", "daily"]);
     expect(updated?.notes).toBe("Take with food");
     expect(updated?.updatedAt).toBe("2025-02-02T10:00:00.000Z");
+    expect(await getPrescriptionById(driver, created.id)).toEqual(updated);
   });
 
   test("updatePrescription returns null when missing", async () => {
@@ -136,5 +140,50 @@ describe("prescriptions", () => {
 
     const prescriptions = await listPrescriptionsByPatient(driver, patient.id);
     expect(prescriptions).toHaveLength(0);
+  });
+
+  test("createPrescription propagates insert failures", async () => {
+    const driver = new FakeDriver();
+    const patient = await createPatient(driver, { name: "Alex" });
+    const runSpy = jest
+      .spyOn(driver, "runAsync")
+      .mockRejectedValueOnce(new Error("insert failed"));
+
+    await expect(
+      createPrescription(driver, {
+        patientId: patient.id,
+        photoUri: "file://photo.jpg",
+        doctorName: "Dr. Lee",
+        condition: "Hypertension",
+        tags: ["bp"],
+        visitDate: "2025-02-01",
+      })
+    ).rejects.toThrow("insert failed");
+
+    expect(runSpy).toHaveBeenCalled();
+  });
+
+  test("updatePrescription propagates update failures", async () => {
+    const driver = new FakeDriver();
+    const patient = await createPatient(driver, { name: "Alex" });
+    const created = await createPrescription(driver, {
+      patientId: patient.id,
+      photoUri: "file://photo.jpg",
+      doctorName: "Dr. Lee",
+      condition: "Hypertension",
+      tags: ["bp"],
+      visitDate: "2025-02-01",
+    });
+    const runSpy = jest.spyOn(driver, "runAsync");
+    runSpy.mockImplementation(async (sql, params) => {
+      if (sql.startsWith("UPDATE prescriptions")) {
+        throw new Error("update failed");
+      }
+      return FakeDriver.prototype.runAsync.call(driver, sql, params);
+    });
+
+    await expect(
+      updatePrescription(driver, created.id, { condition: "Changed" })
+    ).rejects.toThrow("update failed");
   });
 });

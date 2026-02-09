@@ -8,12 +8,16 @@ describe("migrations", () => {
 
     await initializeDb(driver);
 
-    for (const statement of MIGRATIONS[0].up) {
-      expect(driver.executed).toContain(statement);
+    for (const migration of MIGRATIONS) {
+      for (const statement of migration.up) {
+        expect(driver.executed).toContain(statement);
+      }
     }
 
-    expect(driver.migrations).toHaveLength(1);
-    expect(driver.migrations[0].id).toBe(MIGRATIONS[0].id);
+    expect(driver.migrations).toHaveLength(MIGRATIONS.length);
+    expect(driver.migrations.map((m) => m.id)).toEqual(
+      MIGRATIONS.map((m) => m.id)
+    );
   });
 
   test("initializeDb skips applied migrations", async () => {
@@ -25,11 +29,18 @@ describe("migrations", () => {
 
     await initializeDb(driver);
 
-    const appliedStatements = MIGRATIONS[0].up.filter((statement) =>
-      driver.executed.includes(statement)
-    );
+    const appliedStatements = MIGRATIONS[0].up
+      .filter(
+        (statement) =>
+          !statement.startsWith(
+            "CREATE TABLE IF NOT EXISTS schema_migrations"
+          )
+      )
+      .filter((statement) => driver.executed.includes(statement));
 
     expect(appliedStatements).toHaveLength(0);
-    expect(driver.migrations).toHaveLength(1);
+    expect(driver.executed).toContain(MIGRATIONS[1].up[0]);
+    expect(driver.migrations).toHaveLength(2);
+    expect(driver.migrations[1].id).toBe(MIGRATIONS[1].id);
   });
 });
