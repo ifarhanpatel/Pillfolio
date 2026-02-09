@@ -26,6 +26,9 @@
     "e2e:android:build": "detox build --configuration android.emu.debug",
     "e2e:android:run": "detox test --configuration android.emu.debug",
     "e2e:android": "yarn prebuild:android && yarn e2e:android:build && yarn e2e:android:run",
+    "e2e:android:build:ci": "detox build --configuration android.emu.release",
+    "e2e:android:run:ci": "detox test --configuration android.emu.release",
+    "e2e:android:ci": "yarn prebuild:android && yarn e2e:android:build:ci && yarn e2e:android:run:ci",
     "e2e:ci": "yarn e2e:ios:run:ci"
   },
   "dependencies": {

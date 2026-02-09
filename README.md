@@ -26,6 +26,9 @@ yarn start
 - `yarn e2e:ci`: Detox against `ios.sim.release`.
 - `yarn e2e:ios`: Prebuild + iOS Detox build + iOS Detox run.
 - `yarn e2e:android`: Prebuild + Android Detox build + Android Detox run.
+- `yarn e2e:android:build:ci`: Detox Android release build.
+- `yarn e2e:android:run:ci`: Detox Android release test run.
+- `yarn e2e:android:ci`: Prebuild + Android Detox release build + Android Detox release run.
 
 ## CI Gatekeeping (F5)
 GitHub Actions workflow: `.github/workflows/ci.yml`
@@ -34,6 +37,7 @@ Required jobs:
 - `lint`
 - `unit`
 - `e2e-ios`
+- `e2e-android`
 
 Pipeline behavior:
 - Triggers on pushes to `main` and pull requests targeting `main`.
@@ -47,4 +51,5 @@ Use this checklist before merging into `main`:
 - [ ] `yarn test:ci` passes.
 - [ ] `yarn e2e:ci` passes (or a documented reason is provided).
 - [ ] GitHub Actions `lint`, `unit`, and `e2e-ios` are green.
+- [ ] GitHub Actions `lint`, `unit`, `e2e-ios`, and `e2e-android` are green.
 - [ ] Feature scope and regression risk reviewed.

@@ -76,5 +76,55 @@ jobs:
       - name: Install applesimutils
         run: brew tap wix/brew && brew install applesimutils
 
+      - name: Generate native iOS project
+        run: yarn prebuild:ios
+
+      - name: Build iOS Detox app (release)
+        run: yarn e2e:ios:build:ci
+
       - name: Run Detox iOS tests (release)
-        run: yarn e2e:ios:ci
+        run: yarn e2e:ios:run:ci
+
+  e2e-android:
+    name: e2e-android
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    needs:
+      - lint
+      - unit
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Generate native Android project
+        run: yarn prebuild:android
+
+      - name: Build Android Detox app (release)
+        run: yarn e2e:android:build:ci
+
+      - name: Run Detox Android tests (release)
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          avd-name: Pixel_9a
+          script: yarn e2e:android:run:ci
