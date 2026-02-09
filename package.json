@@ -19,11 +19,14 @@
     "e2e:ios:build": "detox build --configuration ios.sim.debug",
     "e2e:ios:run": "detox test --configuration ios.sim.debug",
     "e2e:ios": "yarn prebuild:ios && yarn e2e:ios:build && yarn e2e:ios:run",
+    "e2e:ios:build:ci": "detox build --configuration ios.sim.release",
+    "e2e:ios:run:ci": "detox test --configuration ios.sim.release",
+    "e2e:ios:ci": "yarn prebuild:ios && yarn e2e:ios:build:ci && yarn e2e:ios:run:ci",
     "prebuild:android": "expo prebuild --platform android",
     "e2e:android:build": "detox build --configuration android.emu.debug",
     "e2e:android:run": "detox test --configuration android.emu.debug",
     "e2e:android": "yarn prebuild:android && yarn e2e:android:build && yarn e2e:android:run",
-    "e2e:ci": "detox test --configuration ios.sim.release"
+    "e2e:ci": "yarn e2e:ios:run:ci"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",

@@ -53,7 +53,7 @@ jobs:
 
   e2e-ios:
     name: e2e-ios
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 60
     needs:
       - lint
@@ -76,11 +76,5 @@ jobs:
       - name: Install applesimutils
         run: brew tap wix/brew && brew install applesimutils
 
-      - name: Generate native iOS project
-        run: yarn prebuild:ios
-
-      - name: Build iOS Detox app (release)
-        run: detox build --configuration ios.sim.release
-
       - name: Run Detox iOS tests (release)
-        run: yarn e2e:ci
+        run: yarn e2e:ios:ci
