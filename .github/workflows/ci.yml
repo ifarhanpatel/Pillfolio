@@ -22,8 +22,11 @@ jobs:
           node-version: 20
           cache: yarn
 
+      - name: Enable Corepack
+        run: corepack enable
+
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: yarn install --immutable
 
       - name: Run lint
         run: yarn lint
@@ -41,8 +44,11 @@ jobs:
           node-version: 20
           cache: yarn
 
+      - name: Enable Corepack
+        run: corepack enable
+
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: yarn install --immutable
 
       - name: Run unit and integration tests
         run: yarn test:ci
@@ -64,8 +70,11 @@ jobs:
           node-version: 20
           cache: yarn
 
+      - name: Enable Corepack
+        run: corepack enable
+
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: yarn install --immutable
 
       - name: Install applesimutils
         run: brew tap wix/brew && brew install applesimutils
