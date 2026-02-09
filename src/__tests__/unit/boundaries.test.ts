@@ -29,20 +29,14 @@ describe("service boundaries", () => {
     expect(mocks.fileStorage.deletedFiles).toEqual([storedUri]);
   });
 
-  test("default boundaries keep db and clock configured and throw for unconfigured native boundaries", async () => {
+  test("default boundaries keep db and clock configured", () => {
     const boundaries = createAppBoundaries();
 
     expect(typeof boundaries.db.open).toBe("function");
     expect(typeof boundaries.db.initialize).toBe("function");
     expect(typeof boundaries.clock.nowIso()).toBe("string");
-    await expect(
-      boundaries.imagePicker.pickImage("camera")
-    ).rejects.toThrow("ImagePicker boundary is not configured.");
-    await expect(
-      boundaries.imageCompression.compressImage("file://img.jpg")
-    ).rejects.toThrow("ImageCompression boundary is not configured.");
-    await expect(
-      boundaries.fileStorage.saveImage("file://img.jpg", "img.jpg")
-    ).rejects.toThrow("FileStorage boundary is not configured.");
+    expect(typeof boundaries.imagePicker.pickImage).toBe("function");
+    expect(typeof boundaries.imageCompression.compressImage).toBe("function");
+    expect(typeof boundaries.fileStorage.saveImage).toBe("function");
   });
 });

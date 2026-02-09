@@ -117,6 +117,17 @@ export function PatientsScreen() {
         <ThemedText type="subtitle">Add Patient</ThemedText>
       </Pressable>
 
+      <Pressable
+        style={({ pressed }) => [
+          styles.addPrescriptionButton,
+          pressed && styles.buttonPressed,
+        ]}
+        onPress={() => router.push("/add-edit-prescription?mode=add")}
+        testID="patients-add-prescription-cta"
+      >
+        <ThemedText type="defaultSemiBold">Add Prescription</ThemedText>
+      </Pressable>
+
       {isLoading ? (
         <ThemedView style={styles.loadingContainer}>
           <ActivityIndicator />
@@ -138,7 +149,9 @@ export function PatientsScreen() {
               testID={`patient-card-${toPatientTestKey(patient.name)}`}
             >
               <Pressable
-                onPress={() => router.push({ pathname: "/add-edit-patient", params: { id: patient.id } })}
+                onPress={() =>
+                  router.push({ pathname: "/add-edit-patient", params: { id: patient.id } })
+                }
                 testID={`patient-edit-${toPatientTestKey(patient.name)}`}
               >
                 <ThemedText type="subtitle">{patient.name}</ThemedText>
@@ -244,6 +257,15 @@ const styles = StyleSheet.create({
     borderColor: "#C4C4C8",
     borderRadius: 8,
     padding: 12,
+  },
+  addPrescriptionButton: {
+    borderWidth: 1,
+    borderColor: "#93c5fd",
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: "#dbeafe",
+    alignSelf: "flex-start",
   },
   loadingContainer: {
     marginTop: 12,

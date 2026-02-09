@@ -12,7 +12,13 @@ jest.mock('expo-router', () => ({
     push: jest.fn(),
     back: jest.fn(),
   },
+  useRouter: () => ({
+    push: jest.fn(),
+  }),
   useFocusEffect: () => {},
+  useLocalSearchParams: () => ({
+    id: undefined,
+  }),
 }));
 
 describe('Navigation skeleton screens', () => {
