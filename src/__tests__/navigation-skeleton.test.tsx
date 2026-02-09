@@ -1,6 +1,7 @@
 import { render } from '@testing-library/react-native';
 
 import { PatientsScreen } from '@/src/screens/PatientsScreen';
+import { PatientFormScreen } from '@/src/screens/PatientFormScreen';
 import { PrescriptionDetailScreen } from '@/src/screens/PrescriptionDetailScreen';
 import { PrescriptionFormScreen } from '@/src/screens/PrescriptionFormScreen';
 import { SettingsScreen } from '@/src/screens/SettingsScreen';
@@ -12,6 +13,14 @@ describe('Navigation skeleton screens', () => {
 
     expect(getByText('Patients')).toBeTruthy();
     expect(getByTestId('patients-cta')).toBeTruthy();
+  });
+
+  it('renders Add Patient form content', () => {
+    const { getByText, getByTestId } = render(<PatientFormScreen mode="add" />);
+
+    expect(getByText('Add Patient')).toBeTruthy();
+    expect(getByTestId('patient-form-name-input')).toBeTruthy();
+    expect(getByTestId('patient-form-save-button')).toBeTruthy();
   });
 
   it('renders Timeline screen placeholder', () => {
