@@ -7,6 +7,14 @@ import { PrescriptionFormScreen } from '@/src/screens/PrescriptionFormScreen';
 import { SettingsScreen } from '@/src/screens/SettingsScreen';
 import { TimelineScreen } from '@/src/screens/TimelineScreen';
 
+jest.mock('expo-router', () => ({
+  router: {
+    push: jest.fn(),
+    back: jest.fn(),
+  },
+  useFocusEffect: () => {},
+}));
+
 describe('Navigation skeleton screens', () => {
   it('renders Patients screen CTA', () => {
     const { getByText, getByTestId } = render(<PatientsScreen />);
