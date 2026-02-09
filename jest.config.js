@@ -1,5 +1,8 @@
 module.exports = {
   preset: "jest-expo",
   setupFilesAfterEnv: ["<rootDir>/jest.setup.js"],
-  testPathIgnorePatterns: ["/node_modules/", "/e2e/"]
+  testPathIgnorePatterns: ["/node_modules/", "/e2e/", "/__tests__/helpers/"],
+  moduleNameMapper: {
+    "^expo-sqlite$": "<rootDir>/__mocks__/expo-sqlite.js",
+  },
 };
