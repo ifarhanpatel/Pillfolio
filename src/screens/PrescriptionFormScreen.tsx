@@ -150,8 +150,8 @@ export function PrescriptionFormScreen({ mode }: PrescriptionFormScreenProps) {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.scrollContent}>
-      <ThemedView style={styles.container} testID="prescription-form-screen">
+    <ScrollView contentContainerStyle={styles.scrollContent} testID="prescription-form-screen">
+      <ThemedView style={styles.container}>
         <ThemedText type="title">{title}</ThemedText>
         <ThemedText type="default">Capture visit details and attach a photo.</ThemedText>
 
