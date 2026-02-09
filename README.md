@@ -1,50 +1,55 @@
-# Welcome to your Expo app 👋
+# Pillfolio
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Local-first React Native app (Expo + Expo Router) for managing patient prescriptions.
 
-## Get started
+## Requirements
+- Node.js 20+
+- Yarn 1.x
+- Xcode + iOS Simulator (for Detox iOS E2E)
 
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
+## Setup
 ```bash
-npm run reset-project
+yarn install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Run the app
+```bash
+yarn start
+```
 
-## Learn more
+## Scripts
+- `yarn lint`: ESLint checks.
+- `yarn test`: Jest watch mode.
+- `yarn test:watch`: Jest watch mode alias.
+- `yarn test:ci`: Jest CI mode.
+- `yarn e2e`: Detox against `ios.sim.debug`.
+- `yarn e2e:ci`: Detox against `ios.sim.release`.
+- `yarn e2e:ios`: Prebuild + iOS Detox build + iOS Detox run.
+- `yarn e2e:android`: Prebuild + Android Detox build + Android Detox run.
+- `yarn e2e:android:build:ci`: Detox Android release build.
+- `yarn e2e:android:run:ci`: Detox Android release test run.
+- `yarn e2e:android:ci`: Prebuild + Android Detox release build + Android Detox release run.
 
-To learn more about developing your project with Expo, look at the following resources:
+## CI Gatekeeping (F5)
+GitHub Actions workflow: `.github/workflows/ci.yml`
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+Required jobs:
+- `lint`
+- `unit`
+- `e2e-ios`
+- `e2e-android`
 
-## Join the community
+Pipeline behavior:
+- Triggers on pushes to `main` and pull requests targeting `main`.
+- Blocks merge when any required job fails.
 
-Join our community of developers creating universal apps.
+Branch protection should require these status checks before merge.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Pre-merge Checklist
+Use this checklist before merging into `main`:
+- [ ] `yarn lint` passes.
+- [ ] `yarn test:ci` passes.
+- [ ] `yarn e2e:ci` passes (or a documented reason is provided).
+- [ ] GitHub Actions `lint`, `unit`, and `e2e-ios` are green.
+- [ ] GitHub Actions `lint`, `unit`, `e2e-ios`, and `e2e-android` are green.
+- [ ] Feature scope and regression risk reviewed.

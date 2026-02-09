@@ -1,3 +1,46 @@
+const { execSync } = require("node:child_process");
+
+function pickIosSimulatorType() {
+  if (process.env.DETOX_DEVICE_TYPE) {
+    return process.env.DETOX_DEVICE_TYPE;
+  }
+
+  const preferredDeviceTypes = [
+    "iPhone 16",
+    "iPhone 16 Pro",
+    "iPhone 16 Plus",
+    "iPhone 16 Pro Max",
+    "iPhone 15",
+    "iPhone 15 Pro",
+    "iPhone 14",
+  ];
+
+  try {
+    const output = execSync("xcrun simctl list devicetypes", {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+
+    const available = new Set(
+      output
+        .split("\n")
+        .map((line) => line.match(/^\s*(iPhone [^(]+)\s+\(/))
+        .filter(Boolean)
+        .map((match) => match[1].trim()),
+    );
+
+    for (const deviceType of preferredDeviceTypes) {
+      if (available.has(deviceType)) {
+        return deviceType;
+      }
+    }
+  } catch {
+    // Fall through to default when simctl is unavailable.
+  }
+
+  return "iPhone 16";
+}
+
 /** @type {Detox.DetoxConfig} */
 module.exports = {
   testRunner: {
@@ -44,7 +87,7 @@ module.exports = {
     simulator: {
       type: "ios.simulator",
       device: {
-        type: "iPhone 15",
+        type: pickIosSimulatorType(),
       },
     },
     emulator: {
