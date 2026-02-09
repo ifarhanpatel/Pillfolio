@@ -15,7 +15,14 @@ describe('Navigation skeleton screens', () => {
   });
 
   it('renders Timeline screen placeholder', () => {
-    const { getByText, getByTestId } = render(<TimelineScreen />);
+    const { getByText, getByTestId } = render(
+      <TimelineScreen
+        loadData={async () => ({
+          patient: null,
+          prescriptions: [],
+        })}
+      />
+    );
 
     expect(getByText('Timeline')).toBeTruthy();
     expect(getByTestId('timeline-search-placeholder')).toBeTruthy();
@@ -36,7 +43,19 @@ describe('Navigation skeleton screens', () => {
   });
 
   it('renders Prescription detail actions', () => {
-    const { getByText, getByTestId } = render(<PrescriptionDetailScreen />);
+    const { getByText, getByTestId } = render(
+      <PrescriptionDetailScreen
+        previewPrescription={{
+          photoUri: 'file://preview.jpg',
+          doctorName: 'Dr. Preview',
+          doctorSpecialty: 'General',
+          condition: 'Preview condition',
+          tags: ['preview'],
+          visitDate: '2025-02-01',
+          notes: 'Preview notes',
+        }}
+      />
+    );
 
     expect(getByText('Prescription Detail')).toBeTruthy();
     expect(getByTestId('prescription-detail-actions')).toBeTruthy();

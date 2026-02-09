@@ -20,6 +20,7 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Patients',
+          tabBarButtonTestID: 'tab-patients',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.2.fill" color={color} />,
         }}
       />
@@ -27,6 +28,7 @@ export default function TabLayout() {
         name="timeline"
         options={{
           title: 'Timeline',
+          tabBarButtonTestID: 'tab-timeline',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="clock.fill" color={color} />,
         }}
       />
@@ -34,6 +36,7 @@ export default function TabLayout() {
         name="settings"
         options={{
           title: 'Settings',
+          tabBarButtonTestID: 'tab-settings',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="gearshape.fill" color={color} />,
         }}
       />
