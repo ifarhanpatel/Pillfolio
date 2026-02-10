@@ -1,4 +1,12 @@
-import { createPatient, deletePatient, getPatientById, listPatients, updatePatient } from "../../db/patients";
+import {
+  createPatient,
+  deletePatient,
+  deletePatientWithStrategy,
+  getPatientById,
+  listPatients,
+  updatePatient,
+} from "../../db/patients";
+import { createPrescription, listPrescriptionsByPatient } from "../../db/prescriptions";
 import { FakeDriver } from "../helpers/fakeDriver";
 
 describe("patients", () => {
@@ -88,6 +96,59 @@ describe("patients", () => {
 
     const patients = await listPatients(driver);
     expect(patients).toHaveLength(0);
+  });
+
+  test("deletePatientWithStrategy delete-all removes patient and prescriptions", async () => {
+    const driver = new FakeDriver();
+    const patient = await createPatient(driver, { name: "Alex" });
+    await createPrescription(driver, {
+      patientId: patient.id,
+      photoUri: "file:///rx.jpg",
+      doctorName: "Dr. Lee",
+      condition: "Cold",
+      tags: ["morning"],
+      visitDate: "2025-01-01",
+    });
+
+    await deletePatientWithStrategy(driver, patient.id, { type: "delete-all" });
+
+    expect(await getPatientById(driver, patient.id)).toBeNull();
+    expect(await listPrescriptionsByPatient(driver, patient.id)).toHaveLength(0);
+  });
+
+  test("deletePatientWithStrategy reassign moves prescriptions then deletes source patient", async () => {
+    const driver = new FakeDriver();
+    const sourcePatient = await createPatient(driver, { name: "Alex" });
+    const targetPatient = await createPatient(driver, { name: "Taylor" });
+    await createPrescription(driver, {
+      patientId: sourcePatient.id,
+      photoUri: "file:///rx.jpg",
+      doctorName: "Dr. Lee",
+      condition: "Cold",
+      tags: ["morning"],
+      visitDate: "2025-01-01",
+    });
+
+    await deletePatientWithStrategy(driver, sourcePatient.id, {
+      type: "reassign",
+      targetPatientId: targetPatient.id,
+    });
+
+    expect(await getPatientById(driver, sourcePatient.id)).toBeNull();
+    expect(await listPrescriptionsByPatient(driver, sourcePatient.id)).toHaveLength(0);
+    expect(await listPrescriptionsByPatient(driver, targetPatient.id)).toHaveLength(1);
+  });
+
+  test("deletePatientWithStrategy rejects invalid reassignment target", async () => {
+    const driver = new FakeDriver();
+    const patient = await createPatient(driver, { name: "Alex" });
+
+    await expect(
+      deletePatientWithStrategy(driver, patient.id, {
+        type: "reassign",
+        targetPatientId: patient.id,
+      })
+    ).rejects.toThrow("A different target patient is required for reassignment.");
   });
 
   test("createPatient propagates insert failures", async () => {
