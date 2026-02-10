@@ -85,6 +85,16 @@ export class FakeDriver implements SqlDriver {
     }
 
     if (sql.startsWith("UPDATE prescriptions")) {
+      if (sql.startsWith("UPDATE prescriptions SET patientId")) {
+        const [targetPatientId, sourcePatientId] = params;
+        this.prescriptions = this.prescriptions.map((row) =>
+          row.patientId === sourcePatientId
+            ? { ...row, patientId: asString(targetPatientId) }
+            : row
+        );
+        return;
+      }
+
       const [
         photoUri,
         doctorName,
