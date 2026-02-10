@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { FlatList, Pressable, StyleSheet } from 'react-native';
-import { Image } from 'expo-image';
+import { FlatList, Image, Pressable, StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -126,7 +125,7 @@ export function TimelineScreen({
         onPress={() => onOpenPrescription?.(item.id)}
         style={styles.card}
         testID={`timeline-card-${item.id}`}>
-        <Image source={{ uri: item.photoUri }} style={styles.thumbnail} contentFit="cover" />
+        <Image source={{ uri: item.photoUri }} style={styles.thumbnail} resizeMode="cover" />
         <ThemedView style={styles.cardBody}>
           <ThemedText
             type="defaultSemiBold"

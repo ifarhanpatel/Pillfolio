@@ -1,5 +1,4 @@
-import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { Image } from 'expo-image';
+import { Image, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 
@@ -35,7 +34,7 @@ export function FullscreenImageViewer({
           showsVerticalScrollIndicator={false}
           showsHorizontalScrollIndicator={false}
           bouncesZoom={false}>
-          <Image source={{ uri: imageUri }} style={styles.image} contentFit="contain" />
+          <Image source={{ uri: imageUri }} style={styles.image} resizeMode="contain" />
         </ScrollView>
       </View>
     </Modal>
