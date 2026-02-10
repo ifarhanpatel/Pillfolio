@@ -37,7 +37,6 @@ Required jobs:
 - `lint`
 - `unit`
 - `e2e-ios`
-- `e2e-android`
 
 Pipeline behavior:
 - Triggers on pushes to `main` and pull requests targeting `main`.
@@ -51,5 +50,4 @@ Use this checklist before merging into `main`:
 - [ ] `yarn test:ci` passes.
 - [ ] `yarn e2e:ci` passes (or a documented reason is provided).
 - [ ] GitHub Actions `lint`, `unit`, and `e2e-ios` are green.
-- [ ] GitHub Actions `lint`, `unit`, `e2e-ios`, and `e2e-android` are green.
 - [ ] Feature scope and regression risk reviewed.
