@@ -1,0 +1,57 @@
+describe("Prescription edit and delete flows", () => {
+  beforeEach(async () => {
+    await device.launchApp({ newInstance: true });
+  });
+
+  it("edits and then deletes a prescription", async () => {
+    await element(by.id("patients-add-prescription-cta")).tap();
+    await expect(element(by.id("prescription-form-screen"))).toBeVisible();
+
+    await element(by.id("prescription-photo-uri-input")).replaceText("file://tmp/prescription-edit.jpg");
+    await element(by.id("prescription-doctor-input")).replaceText("Dr. Initial");
+    await waitFor(element(by.id("prescription-condition-input")))
+      .toBeVisible()
+      .whileElement(by.id("prescription-form-screen"))
+      .scroll(120, "down");
+    await element(by.id("prescription-condition-input")).replaceText("Initial Condition");
+    await waitFor(element(by.id("prescription-tags-input")))
+      .toBeVisible()
+      .whileElement(by.id("prescription-form-screen"))
+      .scroll(120, "down");
+    await element(by.id("prescription-tags-input")).replaceText("initial,tag");
+    await waitFor(element(by.id("prescription-save-button")))
+      .toBeVisible()
+      .whileElement(by.id("prescription-form-screen"))
+      .scroll(200, "down");
+    await element(by.id("prescription-save-button")).tap();
+
+    await element(by.text("OK")).tap();
+    await expect(element(by.id("prescription-detail-screen"))).toBeVisible();
+
+    await element(by.id("prescription-detail-edit")).tap();
+    await expect(element(by.id("prescription-form-screen"))).toBeVisible();
+
+    await element(by.id("prescription-doctor-input")).replaceText("Dr. Updated");
+    await waitFor(element(by.id("prescription-condition-input")))
+      .toBeVisible()
+      .whileElement(by.id("prescription-form-screen"))
+      .scroll(120, "down");
+    await element(by.id("prescription-condition-input")).replaceText("Updated Condition");
+    await waitFor(element(by.id("prescription-save-button")))
+      .toBeVisible()
+      .whileElement(by.id("prescription-form-screen"))
+      .scroll(200, "down");
+    await element(by.id("prescription-save-button")).tap();
+
+    await element(by.text("OK")).tap();
+    await expect(element(by.id("prescription-detail-screen"))).toBeVisible();
+    await expect(element(by.text("Dr. Updated"))).toBeVisible();
+    await expect(element(by.text("Updated Condition"))).toBeVisible();
+
+    await element(by.id("prescription-detail-delete")).tap();
+    await waitFor(element(by.text("Delete"))).toBeVisible().withTimeout(5000);
+    await element(by.text("Delete")).tap();
+
+    await expect(element(by.id("timeline-screen"))).toBeVisible();
+  });
+});

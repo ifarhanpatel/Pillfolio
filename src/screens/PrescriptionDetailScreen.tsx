@@ -5,9 +5,10 @@ import { Image } from 'expo-image';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { FullscreenImageViewer } from '@/src/components/FullscreenImageViewer';
-import { deletePrescription, getPrescriptionById } from '@/src/db/prescriptions';
+import { getPrescriptionById } from '@/src/db/prescriptions';
 import type { Prescription } from '@/src/db/types';
 import { initializeDb, openDb } from '@/src/db';
+import { createAppBoundaries, deletePrescriptionWithCleanup } from '@/src/services';
 
 type PrescriptionPreview = {
   photoUri: string;
@@ -45,6 +46,7 @@ export function PrescriptionDetailScreen({
   onEditPrescription,
   onDeletedPrescription,
 }: PrescriptionDetailScreenProps) {
+  const boundaries = useMemo(() => createAppBoundaries(), []);
   const [prescription, setPrescription] = useState<Prescription | null>(null);
   const [isLoading, setIsLoading] = useState(Boolean(prescriptionId));
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -137,9 +139,11 @@ export function PrescriptionDetailScreen({
         onPress: () => {
           void (async () => {
             try {
-              const driver = await openDb();
-              await initializeDb(driver);
-              await deletePrescription(driver, prescriptionId);
+              const deleted = await deletePrescriptionWithCleanup(boundaries, prescriptionId);
+              if (!deleted) {
+                setErrorMessage('Prescription not found.');
+                return;
+              }
               onDeletedPrescription?.();
             } catch {
               setErrorMessage('Unable to delete prescription.');
@@ -160,6 +164,9 @@ export function PrescriptionDetailScreen({
           <Pressable onPress={() => setIsFullscreenVisible(true)} testID="prescription-detail-image">
             <Image source={{ uri: resolvedData.photoUri }} style={styles.image} contentFit="cover" />
           </Pressable>
+          <ThemedText type="default" testID="prescription-detail-photo-uri">
+            {resolvedData.photoUri}
+          </ThemedText>
           <ThemedView style={styles.metadata}>
             <ThemedText type="defaultSemiBold">{formatVisitDate(resolvedData.visitDate)}</ThemedText>
             <ThemedText type="default">{resolvedData.doctorName}</ThemedText>
