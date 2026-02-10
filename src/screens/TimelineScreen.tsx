@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { FlatList, Pressable, StyleSheet } from 'react-native';
+import { FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { Image } from 'expo-image';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { listPatients } from '@/src/db/patients';
-import { listPrescriptionsByPatient } from '@/src/db/prescriptions';
+import { searchPrescriptions } from '@/src/db/prescriptions';
 import type { Patient, Prescription } from '@/src/db/types';
 import { initializeDb, openDb } from '@/src/db';
 
@@ -15,7 +15,7 @@ export type TimelineData = {
 };
 
 type TimelineScreenProps = {
-  loadData?: () => Promise<TimelineData>;
+  loadData?: (input: { query: string; searchAllPatients: boolean }) => Promise<TimelineData>;
   onOpenPrescription?: (prescriptionId: string) => void;
 };
 
@@ -45,7 +45,10 @@ export const sortPrescriptionsByVisitDateDesc = (
   });
 };
 
-const defaultLoadTimelineData = async (): Promise<TimelineData> => {
+const defaultLoadTimelineData = async (input: {
+  query: string;
+  searchAllPatients: boolean;
+}): Promise<TimelineData> => {
   const driver = await openDb();
   await initializeDb(driver);
 
@@ -59,7 +62,11 @@ const defaultLoadTimelineData = async (): Promise<TimelineData> => {
     };
   }
 
-  const prescriptions = await listPrescriptionsByPatient(driver, selectedPatient.id);
+  const prescriptions = await searchPrescriptions(driver, {
+    patientId: selectedPatient.id,
+    query: input.query,
+    searchAllPatients: input.searchAllPatients,
+  });
   return {
     patient: selectedPatient,
     prescriptions,
@@ -72,6 +79,8 @@ export function TimelineScreen({
 }: TimelineScreenProps) {
   const [patient, setPatient] = useState<Patient | null>(null);
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
+  const [query, setQuery] = useState('');
+  const [searchAllPatients, setSearchAllPatients] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -83,7 +92,10 @@ export function TimelineScreen({
       setErrorMessage(null);
 
       try {
-        const timelineData = await loadData();
+        const timelineData = await loadData({
+          query,
+          searchAllPatients,
+        });
         if (!mounted) {
           return;
         }
@@ -110,15 +122,33 @@ export function TimelineScreen({
     return () => {
       mounted = false;
     };
-  }, [loadData]);
+  }, [loadData, query, searchAllPatients]);
 
   const subtitle = useMemo(() => {
+    if (searchAllPatients) {
+      return 'Showing prescriptions from all patients.';
+    }
+
     if (patient) {
       return `${patient.name}'s prescriptions`;
     }
 
     return 'Select a patient to view prescriptions.';
-  }, [patient]);
+  }, [patient, searchAllPatients]);
+
+  const emptyStateMessage = useMemo(() => {
+    if (query.trim()) {
+      return searchAllPatients
+        ? 'No matching prescriptions found.'
+        : 'No matching prescriptions found for this patient.';
+    }
+
+    if (searchAllPatients) {
+      return 'No prescriptions found.';
+    }
+
+    return 'No prescriptions found for this patient.';
+  }, [query, searchAllPatients]);
 
   const renderCard = ({ item }: { item: Prescription }) => {
     return (
@@ -147,9 +177,37 @@ export function TimelineScreen({
     <ThemedView style={styles.container} testID="timeline-screen">
       <ThemedText type="title">Timeline</ThemedText>
       <ThemedText type="default">{subtitle}</ThemedText>
-      <ThemedView style={styles.searchPlaceholder} testID="timeline-search-placeholder">
+      <ThemedView style={styles.searchContainer} testID="timeline-search-panel">
         <ThemedText type="defaultSemiBold">Search</ThemedText>
-        <ThemedText type="default">Search and filters are coming next.</ThemedText>
+        <TextInput
+          placeholder="Doctor, condition, or tag"
+          autoCapitalize="none"
+          value={query}
+          onChangeText={setQuery}
+          style={styles.searchInput}
+          testID="timeline-search-input"
+        />
+        <View style={styles.searchActions}>
+          <Pressable
+            style={[
+              styles.scopeToggleButton,
+              searchAllPatients ? styles.scopeToggleButtonActive : null,
+            ]}
+            onPress={() => setSearchAllPatients((current) => !current)}
+            testID="timeline-search-scope-toggle">
+            <ThemedText type="defaultSemiBold">
+              {searchAllPatients ? 'Searching all patients' : 'Searching selected patient'}
+            </ThemedText>
+          </Pressable>
+          {query.trim().length > 0 ? (
+            <Pressable
+              style={styles.clearButton}
+              onPress={() => setQuery('')}
+              testID="timeline-search-clear">
+              <ThemedText type="defaultSemiBold">Clear</ThemedText>
+            </Pressable>
+          ) : null}
+        </View>
       </ThemedView>
       {isLoading ? (
         <ThemedText type="default">Loading timeline...</ThemedText>
@@ -157,7 +215,7 @@ export function TimelineScreen({
       {!isLoading && errorMessage ? <ThemedText type="default">{errorMessage}</ThemedText> : null}
       {!isLoading && !errorMessage && patient && prescriptions.length === 0 ? (
         <ThemedText type="default" testID="timeline-empty-state">
-          No prescriptions found for this patient.
+          {emptyStateMessage}
         </ThemedText>
       ) : null}
       {!isLoading && !errorMessage && !patient ? (
@@ -184,7 +242,7 @@ const styles = StyleSheet.create({
     padding: 24,
     gap: 12,
   },
-  searchPlaceholder: {
+  searchContainer: {
     marginTop: 8,
     gap: 4,
     borderWidth: 1,
@@ -192,6 +250,39 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
+  },
+  searchInput: {
+    borderWidth: 1,
+    borderColor: '#C8CDD2',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  searchActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 4,
+  },
+  scopeToggleButton: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#94A3B8',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    backgroundColor: '#F8FAFC',
+  },
+  scopeToggleButtonActive: {
+    borderColor: '#3B82F6',
+    backgroundColor: '#DBEAFE',
+  },
+  clearButton: {
+    borderWidth: 1,
+    borderColor: '#C8CDD2',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
   },
   list: {
     gap: 12,
