@@ -2,15 +2,44 @@ import type { SqlDriver } from "./driver";
 import { MIGRATIONS } from "./migrations";
 import { createExpoSqliteDriver } from "./expoSqliteDriver";
 
+const DB_OPEN_TIMEOUT_MS = 15000;
+let driverPromise: Promise<SqlDriver> | null = null;
+let initializationPromise: Promise<void> | null = null;
+let initialized = false;
+
 export const openDb = async (): Promise<SqlDriver> => {
-  return createExpoSqliteDriver();
+  if (!driverPromise) {
+    driverPromise = (async () => {
+      let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+      try {
+        return await Promise.race([
+          createExpoSqliteDriver(),
+          new Promise<SqlDriver>((_, reject) => {
+            timeoutId = setTimeout(() => {
+              reject(new Error("Database initialization timed out."));
+            }, DB_OPEN_TIMEOUT_MS);
+          }),
+        ]);
+      } finally {
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+      }
+    })().catch((error) => {
+      driverPromise = null;
+      throw error;
+    });
+  }
+
+  return driverPromise;
 };
 
-export const initializeDb = async (driver: SqlDriver): Promise<void> => {
-  await driver.runAsync("PRAGMA foreign_keys = ON;");
-  await driver.runAsync(
-    "CREATE TABLE IF NOT EXISTS schema_migrations (id TEXT PRIMARY KEY NOT NULL, appliedAt TEXT NOT NULL);"
-  );
+const initializeDbOnce = async (driver: SqlDriver): Promise<void> => {
+  await driver.execBatchAsync([
+    "PRAGMA foreign_keys = ON;",
+    "CREATE TABLE IF NOT EXISTS schema_migrations (id TEXT PRIMARY KEY NOT NULL, appliedAt TEXT NOT NULL);",
+  ]);
 
   const applied = await driver.getAllAsync<{ id: string }>(
     "SELECT id FROM schema_migrations ORDER BY id ASC;"
@@ -28,4 +57,22 @@ export const initializeDb = async (driver: SqlDriver): Promise<void> => {
       [migration.id, new Date().toISOString()]
     );
   }
+};
+
+export const initializeDb = async (driver: SqlDriver): Promise<void> => {
+  if (initialized) {
+    return;
+  }
+
+  if (!initializationPromise) {
+    initializationPromise = initializeDbOnce(driver)
+      .then(() => {
+        initialized = true;
+      })
+      .finally(() => {
+        initializationPromise = null;
+      });
+  }
+
+  await initializationPromise;
 };
