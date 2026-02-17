@@ -116,6 +116,18 @@ export function PrescriptionFormScreen({ mode }: PrescriptionFormScreenProps) {
   };
 
   const onSave = async () => {
+    if (__DEV__) {
+      console.log("[PrescriptionForm] save:start", {
+        mode,
+        patientId,
+        hasPhotoUri: Boolean(photoUri.trim()),
+        doctorNameLength: doctorName.trim().length,
+        conditionLength: condition.trim().length,
+        tagsCount: parsedTags.length,
+        visitDate,
+      });
+    }
+
     setSaving(true);
     setMessage("");
 
@@ -132,17 +144,29 @@ export function PrescriptionFormScreen({ mode }: PrescriptionFormScreenProps) {
       });
 
       if (!result.ok) {
+        if (__DEV__) {
+          console.log("[PrescriptionForm] save:validation-failed", result.errors);
+        }
         setErrors(result.errors);
         return;
       }
 
       setErrors({});
+      if (__DEV__) {
+        console.log("[PrescriptionForm] save:success", { id: result.prescription.id });
+      }
       Alert.alert("Prescription Saved", "Prescription was saved successfully.");
       router.push({
         pathname: "/prescription-detail",
         params: { id: result.prescription.id },
       });
     } catch (error) {
+      if (__DEV__) {
+        console.log("[PrescriptionForm] save:exception", {
+          message: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+        });
+      }
       setMessage(error instanceof Error ? error.message : "Unable to save prescription.");
     } finally {
       setSaving(false);

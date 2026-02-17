@@ -24,17 +24,22 @@ const toPatientTestKey = (name: string): string =>
 export function PatientsScreen() {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteCandidate, setDeleteCandidate] = useState<Patient | null>(null);
   const [reassignTargetId, setReassignTargetId] = useState<string | null>(null);
 
   const loadPatients = useCallback(async () => {
     setIsLoading(true);
+    setErrorMessage(null);
     try {
       const driver = await openDb();
       await initializeDb(driver);
       const items = await listPatients(driver);
       setPatients(items);
+    } catch {
+      setPatients([]);
+      setErrorMessage("Unable to load patients.");
     } finally {
       setIsLoading(false);
     }
@@ -136,7 +141,9 @@ export function PatientsScreen() {
 
       {!isLoading && patients.length === 0 ? (
         <ThemedView style={styles.emptyState} testID="patients-empty-state">
-          <ThemedText type="default">No patients yet.</ThemedText>
+          <ThemedText type="default">
+            {errorMessage ?? "No patients yet."}
+          </ThemedText>
         </ThemedView>
       ) : null}
 
