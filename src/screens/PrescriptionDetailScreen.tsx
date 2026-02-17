@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Pressable, StyleSheet } from 'react-native';
-import { Image } from 'expo-image';
+import { Alert, Image, Pressable, StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -162,7 +161,7 @@ export function PrescriptionDetailScreen({
       {resolvedData ? (
         <>
           <Pressable onPress={() => setIsFullscreenVisible(true)} testID="prescription-detail-image">
-            <Image source={{ uri: resolvedData.photoUri }} style={styles.image} contentFit="cover" />
+            <Image source={{ uri: resolvedData.photoUri }} style={styles.image} resizeMode="cover" />
           </Pressable>
           <ThemedText type="default" testID="prescription-detail-photo-uri">
             {resolvedData.photoUri}

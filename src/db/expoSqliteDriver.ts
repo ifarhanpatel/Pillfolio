@@ -3,6 +3,7 @@ import * as SQLite from "expo-sqlite";
 import type { SqlDriver, SqlParams } from "./driver";
 
 const DEFAULT_DB_NAME = "pillfolio.db";
+const SQL_PREVIEW_MAX = 120;
 
 type AsyncDb = {
   execAsync: (sql: string) => Promise<void>;
@@ -23,6 +24,24 @@ type SyncTx = {
     onError?: (_tx: SyncTx, error: Error) => void
   ) => void;
 };
+
+const normalizeParams = (params?: SqlParams): SqlParams => params ?? [];
+
+const logSqlite = (stage: string, details?: Record<string, unknown>) => {
+  if (!__DEV__) {
+    return;
+  }
+
+  if (details) {
+    console.log(`[SQLiteDriver] ${stage}`, details);
+    return;
+  }
+
+  console.log(`[SQLiteDriver] ${stage}`);
+};
+
+const previewSql = (sql: string): string =>
+  sql.replace(/\s+/g, " ").trim().slice(0, SQL_PREVIEW_MAX);
 
 const isAsyncDb = (db: unknown): db is AsyncDb => {
   return (
@@ -68,41 +87,77 @@ const runInTransaction = <T>(
 export const createExpoSqliteDriver = async (
   name: string = DEFAULT_DB_NAME
 ): Promise<SqlDriver> => {
+  logSqlite("open-db:start", { name });
   const db = await openDatabase(name);
+  logSqlite("open-db:success", { mode: isAsyncDb(db) ? "async" : "sync" });
 
   if (isAsyncDb(db)) {
     return {
       execBatchAsync: async (statements) => {
+        logSqlite("execBatchAsync:start", { count: statements.length });
         for (const statement of statements) {
+          logSqlite("execBatchAsync:statement", { sql: previewSql(statement) });
           await db.execAsync(statement);
         }
+        logSqlite("execBatchAsync:done");
       },
       runAsync: async (sql, params) => {
-        await db.runAsync(sql, params);
+        const safeParams = normalizeParams(params);
+        logSqlite("runAsync:start", { sql: previewSql(sql), paramsCount: safeParams.length });
+        if (safeParams.length === 0) {
+          await db.execAsync(sql);
+        } else {
+          await db.runAsync(sql, safeParams);
+        }
+        logSqlite("runAsync:done");
       },
       getAllAsync: async (sql, params) => {
-        return db.getAllAsync(sql, params);
+        const safeParams = normalizeParams(params);
+        logSqlite("getAllAsync:start", { sql: previewSql(sql), paramsCount: safeParams.length });
+        const rows = await db.getAllAsync(sql, safeParams);
+        logSqlite("getAllAsync:done", { rows: rows.length });
+        return rows;
       },
       getFirstAsync: async (sql, params) => {
-        return db.getFirstAsync(sql, params);
+        const safeParams = normalizeParams(params);
+        logSqlite("getFirstAsync:start", {
+          sql: previewSql(sql),
+          paramsCount: safeParams.length,
+        });
+        const row = await db.getFirstAsync(sql, safeParams);
+        logSqlite("getFirstAsync:done", { found: row !== null });
+        return row;
       },
     };
   }
 
   return {
     execBatchAsync: async (statements) => {
+      logSqlite("execBatchAsync:start", { count: statements.length });
       for (const statement of statements) {
+        logSqlite("execBatchAsync:statement", { sql: previewSql(statement) });
         await runInTransaction(db, statement, [], () => undefined);
       }
+      logSqlite("execBatchAsync:done");
     },
     runAsync: async (sql, params) => {
-      await runInTransaction(db, sql, params, () => undefined);
+      const safeParams = normalizeParams(params);
+      logSqlite("runAsync:start", { sql: previewSql(sql), paramsCount: safeParams.length });
+      await runInTransaction(db, sql, safeParams, () => undefined);
+      logSqlite("runAsync:done");
     },
     getAllAsync: async <T>(sql: string, params?: SqlParams) => {
-      return runInTransaction(db, sql, params, (rows) => rows._array as T[]);
+      const safeParams = normalizeParams(params);
+      logSqlite("getAllAsync:start", { sql: previewSql(sql), paramsCount: safeParams.length });
+      const rows = await runInTransaction(db, sql, safeParams, (resultRows) => resultRows._array as T[]);
+      logSqlite("getAllAsync:done", { rows: rows.length });
+      return rows;
     },
     getFirstAsync: async <T>(sql: string, params?: SqlParams) => {
-      const result = await runInTransaction(db, sql, params, (rows) => rows._array);
+      const safeParams = normalizeParams(params);
+      logSqlite("getFirstAsync:start", { sql: previewSql(sql), paramsCount: safeParams.length });
+      const result = await runInTransaction(db, sql, safeParams, (rows) => rows._array);
+      logSqlite("getFirstAsync:done", { found: result.length > 0 });
       return (result[0] as T) ?? null;
     },
   };

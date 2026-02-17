@@ -40,26 +40,63 @@ const loadImageManipulator = async () => {
 
 const loadFileSystem = async () => {
   try {
-    return await import("expo-file-system");
+    return await import("expo-file-system/legacy");
   } catch {
-    throw new Error("expo-file-system is required for image storage.");
+    throw new Error("expo-file-system legacy API is required for image storage.");
   }
+};
+
+const resolveBaseDirectory = (fileSystem: Record<string, unknown>): string | null => {
+  const directDocument = fileSystem.documentDirectory;
+  if (typeof directDocument === "string" && directDocument.length > 0) {
+    return directDocument;
+  }
+
+  const directCache = fileSystem.cacheDirectory;
+  if (typeof directCache === "string" && directCache.length > 0) {
+    return directCache;
+  }
+
+  const paths = fileSystem.Paths as
+    | {
+        document?: { uri?: string };
+        cache?: { uri?: string };
+      }
+    | undefined;
+
+  const pathsDocument = paths?.document?.uri;
+  if (typeof pathsDocument === "string" && pathsDocument.length > 0) {
+    return pathsDocument;
+  }
+
+  const pathsCache = paths?.cache?.uri;
+  if (typeof pathsCache === "string" && pathsCache.length > 0) {
+    return pathsCache;
+  }
+
+  return null;
+};
+
+const joinUri = (baseUri: string, segment: string): string => {
+  const normalizedBase = baseUri.endsWith("/") ? baseUri.slice(0, -1) : baseUri;
+  const normalizedSegment = segment.replace(/^\/+/, "").replace(/\/+$/, "");
+  return `${normalizedBase}/${normalizedSegment}`;
 };
 
 const defaultFileStorageBoundary: FileStorageBoundary = {
   async saveImage(sourceUri: string, targetFileName: string): Promise<string> {
     const fileSystem = await loadFileSystem();
-    const documentDirectory: string | null = fileSystem.documentDirectory ?? null;
+    const baseDirectory = resolveBaseDirectory(fileSystem as unknown as Record<string, unknown>);
 
-    if (!documentDirectory) {
-      throw new Error("Document directory is unavailable.");
+    if (!baseDirectory) {
+      throw new Error("No writable app directory is available.");
     }
 
-    const directoryUri = `${documentDirectory}${STORAGE_DIRS.prescriptions}`;
+    const directoryUri = joinUri(baseDirectory, STORAGE_DIRS.prescriptions);
     await fileSystem.makeDirectoryAsync(directoryUri, { intermediates: true });
 
     const safeFileName = targetFileName.replace(/[^a-zA-Z0-9._-]/g, "_");
-    const destinationUri = `${directoryUri}/${safeFileName}`;
+    const destinationUri = joinUri(directoryUri, safeFileName);
 
     await fileSystem.copyAsync({
       from: sourceUri,

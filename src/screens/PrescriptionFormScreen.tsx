@@ -152,6 +152,18 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
       return;
     }
 
+    if (__DEV__) {
+      console.log("[PrescriptionForm] save:start", {
+        mode,
+        patientId,
+        hasPhotoUri: Boolean(photoUri.trim()),
+        doctorNameLength: doctorName.trim().length,
+        conditionLength: condition.trim().length,
+        tagsCount: parsedTags.length,
+        visitDate,
+      });
+    }
+
     setSaving(true);
     setMessage("");
     setErrors({});
@@ -176,6 +188,9 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
           : await addPrescription(boundaries, draft);
 
       if (!result.ok) {
+        if (__DEV__) {
+          console.log("[PrescriptionForm] save:validation-failed", result.errors);
+        }
         setErrors(result.errors);
         if (result.errors.prescriptionId) {
           setMessage(result.errors.prescriptionId);
@@ -184,6 +199,11 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
       }
 
       setErrors({});
+
+      if (__DEV__) {
+        console.log("[PrescriptionForm] save:success", { id: result.prescription.id });
+      }
+
       Alert.alert(
         isEditMode ? "Prescription Updated" : "Prescription Saved",
         isEditMode ? "Prescription changes were saved successfully." : "Prescription was saved successfully."
@@ -193,6 +213,12 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
         params: { id: result.prescription.id },
       });
     } catch (error) {
+      if (__DEV__) {
+        console.log("[PrescriptionForm] save:exception", {
+          message: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+        });
+      }
       setMessage(error instanceof Error ? error.message : "Unable to save prescription.");
     } finally {
       setSaving(false);
