@@ -1,9 +1,13 @@
-import { initializeDb } from "../../db";
-import { MIGRATIONS } from "../../db/migrations";
 import { FakeDriver } from "../helpers/fakeDriver";
 
 describe("migrations", () => {
+  beforeEach(() => {
+    jest.resetModules();
+  });
+
   test("initializeDb applies missing migrations", async () => {
+    const { initializeDb } = require("../../db");
+    const { MIGRATIONS } = require("../../db/migrations");
     const driver = new FakeDriver();
 
     await initializeDb(driver);
@@ -21,6 +25,8 @@ describe("migrations", () => {
   });
 
   test("initializeDb skips applied migrations", async () => {
+    const { initializeDb } = require("../../db");
+    const { MIGRATIONS } = require("../../db/migrations");
     const driver = new FakeDriver();
     driver.migrations.push({
       id: MIGRATIONS[0].id,

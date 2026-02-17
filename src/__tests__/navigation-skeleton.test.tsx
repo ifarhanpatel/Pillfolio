@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react-native';
+import { render, waitFor } from '@testing-library/react-native';
 
 import { PatientsScreen } from '@/src/screens/PatientsScreen';
 import { PatientFormScreen } from '@/src/screens/PatientFormScreen';
@@ -37,7 +37,7 @@ describe('Navigation skeleton screens', () => {
     expect(getByTestId('patient-form-save-button')).toBeTruthy();
   });
 
-  it('renders Timeline screen placeholder', () => {
+  it('renders Timeline screen placeholder', async () => {
     const { getByText, getByTestId } = render(
       <TimelineScreen
         loadData={async () => ({
@@ -47,22 +47,28 @@ describe('Navigation skeleton screens', () => {
       />
     );
 
-    expect(getByText('Timeline')).toBeTruthy();
-    expect(getByTestId('timeline-search-placeholder')).toBeTruthy();
+    await waitFor(() => {
+      expect(getByText('Timeline')).toBeTruthy();
+      expect(getByTestId('timeline-search-placeholder')).toBeTruthy();
+    });
   });
 
-  it('renders Add Prescription form content', () => {
+  it('renders Add Prescription form content', async () => {
     const { getByText, getByTestId } = render(<PrescriptionFormScreen mode="add" />);
 
-    expect(getByText('Add Prescription')).toBeTruthy();
-    expect(getByTestId('prescription-form-photo')).toBeTruthy();
-    expect(getByTestId('prescription-form-fields')).toBeTruthy();
+    await waitFor(() => {
+      expect(getByText('Add Prescription')).toBeTruthy();
+      expect(getByTestId('prescription-form-photo')).toBeTruthy();
+      expect(getByTestId('prescription-form-fields')).toBeTruthy();
+    });
   });
 
-  it('renders Edit Prescription form content', () => {
+  it('renders Edit Prescription form content', async () => {
     const { getByText } = render(<PrescriptionFormScreen mode="edit" />);
 
-    expect(getByText('Edit Prescription')).toBeTruthy();
+    await waitFor(() => {
+      expect(getByText('Edit Prescription')).toBeTruthy();
+    });
   });
 
   it('renders Prescription detail actions', () => {
