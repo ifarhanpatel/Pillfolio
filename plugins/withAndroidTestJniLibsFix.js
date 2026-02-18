@@ -5,16 +5,22 @@ const END_MARKER = "// @generated end withAndroidTestJniLibsFix";
 
 const FIX_BLOCK = `${START_MARKER}
 subprojects { subproject ->
-    afterEvaluate { project ->
-        if (project.extensions.findByName("android") != null) {
-            project.android {
-                packagingOptions {
-                    jniLibs {
-                        pickFirsts += ['**/libfbjni.so']
-                    }
+    def applyJniPickFirst = {
+        subproject.android {
+            packagingOptions {
+                jniLibs {
+                    pickFirsts += ['**/libfbjni.so']
                 }
             }
         }
+    }
+
+    subproject.plugins.withId("com.android.application") {
+        applyJniPickFirst()
+    }
+
+    subproject.plugins.withId("com.android.library") {
+        applyJniPickFirst()
     }
 }
 ${END_MARKER}`;
