@@ -12,17 +12,17 @@ describe("Prescription edit and delete flows", () => {
     await waitFor(element(by.id("prescription-condition-input")))
       .toBeVisible()
       .whileElement(by.id("prescription-form-screen"))
-      .scroll(120, "down");
+      .scroll(120, "down", 0.5, 0.5);
     await element(by.id("prescription-condition-input")).replaceText("Initial Condition");
     await waitFor(element(by.id("prescription-tags-input")))
       .toBeVisible()
       .whileElement(by.id("prescription-form-screen"))
-      .scroll(120, "down");
+      .scroll(120, "down", 0.5, 0.5);
     await element(by.id("prescription-tags-input")).replaceText("initial,tag");
     await waitFor(element(by.id("prescription-save-button")))
       .toBeVisible()
       .whileElement(by.id("prescription-form-screen"))
-      .scroll(200, "down");
+      .scroll(200, "down", 0.5, 0.5);
     await element(by.id("prescription-save-button")).tap();
 
     await element(by.text("OK")).tap();
@@ -35,12 +35,12 @@ describe("Prescription edit and delete flows", () => {
     await waitFor(element(by.id("prescription-condition-input")))
       .toBeVisible()
       .whileElement(by.id("prescription-form-screen"))
-      .scroll(120, "down");
+      .scroll(120, "down", 0.5, 0.5);
     await element(by.id("prescription-condition-input")).replaceText("Updated Condition");
     await waitFor(element(by.id("prescription-save-button")))
       .toBeVisible()
       .whileElement(by.id("prescription-form-screen"))
-      .scroll(200, "down");
+      .scroll(200, "down", 0.5, 0.5);
     await element(by.id("prescription-save-button")).tap();
 
     await element(by.text("OK")).tap();
