@@ -1,4 +1,8 @@
 describe("App launch smoke test", () => {
+  const scrollFormDown = async () => {
+    await element(by.id("prescription-form-screen")).scroll(220, "down", 0.5, 0.5);
+  };
+
   beforeAll(async () => {
     await device.launchApp({ newInstance: true });
   });
@@ -17,21 +21,17 @@ describe("App launch smoke test", () => {
       "file://tmp/prescription.jpg"
     );
     await element(by.id("prescription-doctor-input")).replaceText("Dr. Lee");
+    await scrollFormDown();
     await waitFor(element(by.id("prescription-condition-input")))
       .toBeVisible()
-      .whileElement(by.id("prescription-form-screen"))
-      .scrollTo("bottom");
+      .withTimeout(5000);
     await element(by.id("prescription-condition-input")).replaceText("Hypertension");
-    await waitFor(element(by.id("prescription-tags-input")))
-      .toBeVisible()
-      .whileElement(by.id("prescription-form-screen"))
-      .scrollTo("bottom");
+    await scrollFormDown();
+    await waitFor(element(by.id("prescription-tags-input"))).toBeVisible().withTimeout(5000);
     await element(by.id("prescription-tags-input")).replaceText("bp,daily");
     await element(by.id("visit-date-today")).tap();
-    await waitFor(element(by.id("prescription-save-button")))
-      .toBeVisible()
-      .whileElement(by.id("prescription-form-screen"))
-      .scrollTo("bottom");
+    await scrollFormDown();
+    await waitFor(element(by.id("prescription-save-button"))).toBeVisible().withTimeout(5000);
     await element(by.id("prescription-save-button")).tap();
 
     await element(by.text("OK")).tap();

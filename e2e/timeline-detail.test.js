@@ -1,4 +1,8 @@
 describe('Timeline and detail viewer', () => {
+  const scrollFormDown = async () => {
+    await element(by.id('prescription-form-screen')).scroll(220, 'down', 0.5, 0.5);
+  };
+
   it('opens the timeline tab', async () => {
     await device.launchApp({ newInstance: true });
 
@@ -29,21 +33,15 @@ describe('Timeline and detail viewer', () => {
     await waitFor(element(by.id('prescription-form-screen'))).toBeVisible().withTimeout(10000);
     await element(by.id('prescription-photo-uri-input')).replaceText('file://tmp/fullscreen.jpg');
     await element(by.id('prescription-doctor-input')).replaceText('Dr. Detox');
-    await waitFor(element(by.id('prescription-condition-input')))
-      .toBeVisible()
-      .whileElement(by.id('prescription-form-screen'))
-      .scrollTo('bottom');
+    await scrollFormDown();
+    await waitFor(element(by.id('prescription-condition-input'))).toBeVisible().withTimeout(5000);
     await element(by.id('prescription-condition-input')).replaceText('Sample Condition');
-    await waitFor(element(by.id('prescription-tags-input')))
-      .toBeVisible()
-      .whileElement(by.id('prescription-form-screen'))
-      .scrollTo('bottom');
+    await scrollFormDown();
+    await waitFor(element(by.id('prescription-tags-input'))).toBeVisible().withTimeout(5000);
     await element(by.id('prescription-tags-input')).replaceText('night,demo');
     await element(by.id('visit-date-today')).tap();
-    await waitFor(element(by.id('prescription-save-button')))
-      .toBeVisible()
-      .whileElement(by.id('prescription-form-screen'))
-      .scrollTo('bottom');
+    await scrollFormDown();
+    await waitFor(element(by.id('prescription-save-button'))).toBeVisible().withTimeout(5000);
     await element(by.id('prescription-save-button')).tap();
     await element(by.text('OK')).tap();
 
