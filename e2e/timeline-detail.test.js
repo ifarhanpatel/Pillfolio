@@ -6,7 +6,7 @@ describe('Timeline and detail viewer', () => {
         return;
       } catch {
         try {
-          await element(by.id('prescription-form-screen')).scroll(160, 'down', 0.5, 0.7);
+          await element(by.id('prescription-form-screen')).scroll(180, 'down', 0.5, 0.2);
         } catch {
           // Ignore scroll failures; view may already be at bottom.
         }
@@ -55,6 +55,9 @@ describe('Timeline and detail viewer', () => {
     await waitFor(element(by.id('prescription-form-screen'))).toBeVisible().withTimeout(10000);
     await element(by.id('prescription-photo-uri-input')).replaceText('file://tmp/fullscreen.jpg');
     await element(by.id('prescription-doctor-input')).replaceText('Dr. Detox');
+    try {
+      await element(by.id('prescription-doctor-input')).tapReturnKey();
+    } catch {}
     await ensureVisible('prescription-condition-input');
     await element(by.id('prescription-condition-input')).replaceText('Sample Condition');
     await ensureVisible('prescription-tags-input');

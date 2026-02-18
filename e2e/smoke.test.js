@@ -6,7 +6,7 @@ describe("App launch smoke test", () => {
         return;
       } catch {
         try {
-          await element(by.id("prescription-form-screen")).scroll(160, "down", 0.5, 0.7);
+          await element(by.id("prescription-form-screen")).scroll(180, "down", 0.5, 0.2);
         } catch {
           // Ignore scroll failures; some runs are already at bottom.
         }
@@ -43,6 +43,9 @@ describe("App launch smoke test", () => {
       "file://tmp/prescription.jpg"
     );
     await element(by.id("prescription-doctor-input")).replaceText("Dr. Lee");
+    try {
+      await element(by.id("prescription-doctor-input")).tapReturnKey();
+    } catch {}
     await ensureVisible("prescription-condition-input");
     await element(by.id("prescription-condition-input")).replaceText("Hypertension");
     await ensureVisible("prescription-tags-input");

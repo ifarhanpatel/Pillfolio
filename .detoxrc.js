@@ -93,7 +93,7 @@ module.exports = {
     emulator: {
       type: "android.emulator",
       device: {
-        avdName: "Pixel_9a",
+        avdName: process.env.DETOX_AVD_NAME || "test",
       },
     },
   },
