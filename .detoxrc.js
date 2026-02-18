@@ -71,7 +71,7 @@ module.exports = {
       binaryPath:
         "android/app/build/outputs/apk/debug/app-debug.apk",
       build:
-        "cd android && ./gradlew assembleDebug assembleAndroidTest -DtestBuildType=debug",
+        "cd android && ./gradlew assembleDebug assembleAndroidTest -DtestBuildType=debug -PreactNativeArchitectures=x86_64",
       reversePorts: [8081],
     },
     "android.release": {
@@ -79,7 +79,7 @@ module.exports = {
       binaryPath:
         "android/app/build/outputs/apk/release/app-release.apk",
       build:
-        "cd android && ./gradlew assembleRelease assembleAndroidTest -DtestBuildType=release",
+        "cd android && ./gradlew assembleRelease assembleAndroidTest -DtestBuildType=release -PreactNativeArchitectures=x86_64",
       reversePorts: [8081],
     },
   },

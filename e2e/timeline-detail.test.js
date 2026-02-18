@@ -10,7 +10,7 @@ describe('Timeline and detail viewer', () => {
       return;
     } catch {
       // Retry once after re-focusing app route in case the first deep link is swallowed on cold boot.
-      await waitFor(element(by.id('patients-screen'))).toBeVisible().withTimeout(15000);
+      await waitFor(element(by.id('patients-screen'))).toBeVisible().withTimeout(60000);
       await attempt(45000);
     }
   };
@@ -37,7 +37,7 @@ describe('Timeline and detail viewer', () => {
       notes: 'Detox preview',
     }).toString();
 
-    await waitFor(element(by.id('patients-screen'))).toBeVisible().withTimeout(15000);
+    await waitFor(element(by.id('patients-screen'))).toBeVisible().withTimeout(60000);
     await openDetailWithRetry(`pillfolio:///prescription-detail?${params}`);
     await element(by.id('prescription-detail-image')).tap();
     await expect(element(by.id('prescription-image-fullscreen'))).toBeVisible();

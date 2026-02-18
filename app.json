@@ -27,7 +27,6 @@
     },
     "plugins": [
       "expo-router",
-      "./plugins/withAndroidTestJniLibsFix",
       [
         "expo-splash-screen",
         {

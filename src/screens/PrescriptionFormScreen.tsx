@@ -55,7 +55,7 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
   const boundaries = useMemo(() => createAppBoundaries(), []);
   const router = useRouter();
 
-  const [isLoading, setIsLoading] = useState(isEditMode && Boolean(prescriptionId));
+  const [isLoading, setIsLoading] = useState(true);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [patientId, setPatientId] = useState("");
   const [photoUri, setPhotoUri] = useState("");
@@ -147,6 +147,10 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
   };
 
   const onSave = async () => {
+    if (isLoading) {
+      return;
+    }
+
     if (isEditMode && !prescriptionId) {
       setMessage("Prescription not found.");
       return;
@@ -402,7 +406,7 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
           <Pressable
             style={[styles.primaryButton, saving ? styles.primaryButtonDisabled : null]}
             onPress={onSave}
-            disabled={saving}
+            disabled={saving || isLoading}
             testID="prescription-save-button"
           >
             <ThemedText type="defaultSemiBold">
