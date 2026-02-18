@@ -25,10 +25,11 @@ describe("App launch smoke test", () => {
       .whileElement(by.id("prescription-form-screen"))
       .scroll(120, "down", 0.5, 0.5);
     await element(by.id("prescription-tags-input")).replaceText("bp,daily");
-    await waitFor(element(by.id("prescription-save-button")))
-      .toBeVisible()
-      .whileElement(by.id("prescription-form-screen"))
-      .scroll(200, "down", 0.5, 0.5);
+
+    // Dismiss the keyboard, then jump to bottom to avoid flaky incremental scrolls.
+    await element(by.id("prescription-form-screen")).tapAtPoint({ x: 16, y: 16 });
+    await element(by.id("prescription-form-screen")).scrollTo("bottom");
+    await waitFor(element(by.id("prescription-save-button"))).toBeVisible().withTimeout(5000);
     await element(by.id("prescription-save-button")).tap();
 
     await element(by.text("OK")).tap();

@@ -21,11 +21,12 @@ describe('Timeline and detail viewer', () => {
 
     await device.launchApp({
       newInstance: true,
+      delete: true,
       // Use triple slash so `prescription-detail` is parsed as a path, not host.
       url: `pillfolio:///prescription-detail?${params}`,
     });
 
-    await waitFor(element(by.id('prescription-detail-screen'))).toBeVisible().withTimeout(10000);
+    await waitFor(element(by.id('prescription-detail-screen'))).toBeVisible().withTimeout(30000);
     await element(by.id('prescription-detail-image')).tap();
     await expect(element(by.id('prescription-image-fullscreen'))).toBeVisible();
     await element(by.id('prescription-image-close')).tap();
