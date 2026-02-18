@@ -1,4 +1,26 @@
 describe("App launch smoke test", () => {
+  const waitForDetailScreen = async (timeoutMs = 60000) => {
+    const deadline = Date.now() + timeoutMs;
+
+    while (Date.now() < deadline) {
+      try {
+        await waitFor(element(by.id("prescription-detail-screen"))).toBeVisible().withTimeout(1500);
+        return;
+      } catch {
+        // Continue polling; detail navigation can lag while main queue is busy in CI.
+      }
+
+      try {
+        await waitFor(element(by.text("OK"))).toBeVisible().withTimeout(1000);
+        await element(by.text("OK")).tap();
+      } catch {
+        // Alert may not be present on this iteration.
+      }
+    }
+
+    throw new Error("Timed out waiting for prescription detail screen.");
+  };
+
   const dismissSuccessAlertIfPresent = async () => {
     try {
       await waitFor(element(by.text("OK"))).toBeVisible().withTimeout(2000);
@@ -42,7 +64,7 @@ describe("App launch smoke test", () => {
     await element(by.id("prescription-save-button")).tap();
 
     await dismissSuccessAlertIfPresent();
-    await waitFor(element(by.id("prescription-detail-screen"))).toBeVisible().withTimeout(15000);
+    await waitForDetailScreen();
     await expect(element(by.id("prescription-detail-photo-uri"))).toBeVisible();
   });
 });

@@ -1,30 +1,33 @@
-const { withAppBuildGradle } = require("@expo/config-plugins");
+const { withProjectBuildGradle } = require("@expo/config-plugins");
 
-const JNI_PICK_FIRST_BLOCK = `packagingOptions {
-        jniLibs {
-            pickFirsts += ['**/libfbjni.so']
+const START_MARKER = "// @generated begin withAndroidTestJniLibsFix";
+const END_MARKER = "// @generated end withAndroidTestJniLibsFix";
+
+const FIX_BLOCK = `${START_MARKER}
+subprojects { subproject ->
+    afterEvaluate { project ->
+        if (project.extensions.findByName("android") != null) {
+            project.android {
+                packagingOptions {
+                    jniLibs {
+                        pickFirsts += ['**/libfbjni.so']
+                    }
+                }
+            }
         }
-    }`;
+    }
+}
+${END_MARKER}`;
 
 module.exports = function withAndroidTestJniLibsFix(config) {
-  return withAppBuildGradle(config, (configMod) => {
+  return withProjectBuildGradle(config, (configMod) => {
     const contents = configMod.modResults.contents;
 
-    if (contents.includes("pickFirsts += ['**/libfbjni.so']")) {
+    if (contents.includes(START_MARKER)) {
       return configMod;
     }
 
-    const androidBlockMatch = contents.match(/android\s*\{/m);
-    if (!androidBlockMatch) {
-      return configMod;
-    }
-
-    const insertIndex = androidBlockMatch.index + androidBlockMatch[0].length;
-    configMod.modResults.contents =
-      contents.slice(0, insertIndex) +
-      `\n    ${JNI_PICK_FIRST_BLOCK}\n` +
-      contents.slice(insertIndex);
-
+    configMod.modResults.contents = `${contents.trimEnd()}\n\n${FIX_BLOCK}\n`;
     return configMod;
   });
 };

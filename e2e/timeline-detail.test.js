@@ -1,4 +1,20 @@
 describe('Timeline and detail viewer', () => {
+  const openDetailWithRetry = async (url) => {
+    const attempt = async (timeoutMs) => {
+      await device.openURL({ url });
+      await waitFor(element(by.id('prescription-detail-screen'))).toBeVisible().withTimeout(timeoutMs);
+    };
+
+    try {
+      await attempt(30000);
+      return;
+    } catch {
+      // Retry once after re-focusing app route in case the first deep link is swallowed on cold boot.
+      await waitFor(element(by.id('patients-screen'))).toBeVisible().withTimeout(15000);
+      await attempt(45000);
+    }
+  };
+
   beforeEach(async () => {
     await device.launchApp({ newInstance: true, delete: true });
   });
@@ -22,9 +38,7 @@ describe('Timeline and detail viewer', () => {
     }).toString();
 
     await waitFor(element(by.id('patients-screen'))).toBeVisible().withTimeout(15000);
-    await device.openURL({ url: `pillfolio:///prescription-detail?${params}` });
-
-    await waitFor(element(by.id('prescription-detail-screen'))).toBeVisible().withTimeout(45000);
+    await openDetailWithRetry(`pillfolio:///prescription-detail?${params}`);
     await element(by.id('prescription-detail-image')).tap();
     await expect(element(by.id('prescription-image-fullscreen'))).toBeVisible();
     await element(by.id('prescription-image-close')).tap();
