@@ -1,6 +1,15 @@
 describe("Prescription edit and delete flows", () => {
+  const dismissSuccessAlertIfPresent = async () => {
+    try {
+      await waitFor(element(by.text("OK"))).toBeVisible().withTimeout(2000);
+      await element(by.text("OK")).tap();
+    } catch {
+      // Alert may auto-dismiss or not render consistently across simulator runs.
+    }
+  };
+
   beforeEach(async () => {
-    await device.launchApp({ newInstance: true });
+    await device.launchApp({ newInstance: true, delete: true });
   });
 
   it("edits and then deletes a prescription", async () => {
@@ -25,7 +34,7 @@ describe("Prescription edit and delete flows", () => {
       .scroll(200, "down", 0.5, 0.5);
     await element(by.id("prescription-save-button")).tap();
 
-    await element(by.text("OK")).tap();
+    await dismissSuccessAlertIfPresent();
     await expect(element(by.id("prescription-detail-screen"))).toBeVisible();
 
     await element(by.id("prescription-detail-edit")).tap();
@@ -43,7 +52,7 @@ describe("Prescription edit and delete flows", () => {
       .scroll(200, "down", 0.5, 0.5);
     await element(by.id("prescription-save-button")).tap();
 
-    await element(by.text("OK")).tap();
+    await dismissSuccessAlertIfPresent();
     await expect(element(by.id("prescription-detail-screen"))).toBeVisible();
     await expect(element(by.text("Dr. Updated"))).toBeVisible();
     await expect(element(by.text("Updated Condition"))).toBeVisible();

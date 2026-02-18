@@ -7,6 +7,12 @@ let driverPromise: Promise<SqlDriver> | null = null;
 let initializationPromise: Promise<void> | null = null;
 let initialized = false;
 
+export const resetDbStateForTests = (): void => {
+  driverPromise = null;
+  initializationPromise = null;
+  initialized = false;
+};
+
 export const openDb = async (): Promise<SqlDriver> => {
   if (!driverPromise) {
     driverPromise = (async () => {

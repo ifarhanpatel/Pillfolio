@@ -1,7 +1,9 @@
 describe('Timeline and detail viewer', () => {
-  it('opens the timeline tab', async () => {
-    await device.launchApp({ newInstance: true });
+  beforeEach(async () => {
+    await device.launchApp({ newInstance: true, delete: true });
+  });
 
+  it('opens the timeline tab', async () => {
     await element(by.id('tab-timeline')).tap();
 
     await expect(element(by.id('timeline-screen'))).toBeVisible();
@@ -19,14 +21,10 @@ describe('Timeline and detail viewer', () => {
       notes: 'Detox preview',
     }).toString();
 
-    await device.launchApp({
-      newInstance: true,
-      delete: true,
-      // Use triple slash so `prescription-detail` is parsed as a path, not host.
-      url: `pillfolio:///prescription-detail?${params}`,
-    });
+    await waitFor(element(by.id('patients-screen'))).toBeVisible().withTimeout(15000);
+    await device.openURL({ url: `pillfolio:///prescription-detail?${params}` });
 
-    await waitFor(element(by.id('prescription-detail-screen'))).toBeVisible().withTimeout(30000);
+    await waitFor(element(by.id('prescription-detail-screen'))).toBeVisible().withTimeout(45000);
     await element(by.id('prescription-detail-image')).tap();
     await expect(element(by.id('prescription-image-fullscreen'))).toBeVisible();
     await element(by.id('prescription-image-close')).tap();

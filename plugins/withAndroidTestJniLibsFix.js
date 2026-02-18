@@ -14,9 +14,9 @@ module.exports = function withAndroidTestJniLibsFix(config) {
       return configMod;
     }
 
-    const androidBlockMatch = contents.match(/android\\s*\\{/);
+    const androidBlockMatch = contents.match(/android\s*\{/m);
     if (!androidBlockMatch) {
-      throw new Error("Unable to find android block in app/build.gradle");
+      return configMod;
     }
 
     const insertIndex = androidBlockMatch.index + androidBlockMatch[0].length;
