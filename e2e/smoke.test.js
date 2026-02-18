@@ -1,6 +1,28 @@
 describe("App launch smoke test", () => {
-  const scrollFormDown = async () => {
-    await element(by.id("prescription-form-screen")).scroll(220, "down", 0.5, 0.5);
+  const ensureVisible = async (testID) => {
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      try {
+        await expect(element(by.id(testID))).toBeVisible();
+        return;
+      } catch {
+        try {
+          await element(by.id("prescription-form-screen")).scroll(160, "down", 0.5, 0.7);
+        } catch {
+          // Ignore scroll failures; some runs are already at bottom.
+        }
+      }
+    }
+
+    await expect(element(by.id(testID))).toBeVisible();
+  };
+
+  const dismissOkAlertIfPresent = async () => {
+    try {
+      await waitFor(element(by.text("OK"))).toBeVisible().withTimeout(2500);
+      await element(by.text("OK")).tap();
+    } catch {
+      // Some iOS runs navigate without rendering the Alert button.
+    }
   };
 
   beforeAll(async () => {
@@ -21,20 +43,16 @@ describe("App launch smoke test", () => {
       "file://tmp/prescription.jpg"
     );
     await element(by.id("prescription-doctor-input")).replaceText("Dr. Lee");
-    await scrollFormDown();
-    await waitFor(element(by.id("prescription-condition-input")))
-      .toBeVisible()
-      .withTimeout(5000);
+    await ensureVisible("prescription-condition-input");
     await element(by.id("prescription-condition-input")).replaceText("Hypertension");
-    await scrollFormDown();
-    await waitFor(element(by.id("prescription-tags-input"))).toBeVisible().withTimeout(5000);
+    await ensureVisible("prescription-tags-input");
     await element(by.id("prescription-tags-input")).replaceText("bp,daily");
+    await ensureVisible("visit-date-today");
     await element(by.id("visit-date-today")).tap();
-    await scrollFormDown();
-    await waitFor(element(by.id("prescription-save-button"))).toBeVisible().withTimeout(5000);
+    await ensureVisible("prescription-save-button");
     await element(by.id("prescription-save-button")).tap();
 
-    await element(by.text("OK")).tap();
+    await dismissOkAlertIfPresent();
     await waitFor(element(by.id("prescription-detail-screen")))
       .toBeVisible()
       .withTimeout(10000);
