@@ -9,7 +9,9 @@ describe("App launch smoke test", () => {
 
   it("adds a prescription and navigates to detail", async () => {
     await element(by.id("patients-add-prescription-cta")).tap();
-    await expect(element(by.id("prescription-form-screen"))).toBeVisible();
+    await waitFor(element(by.id("prescription-form-screen")))
+      .toBeVisible()
+      .withTimeout(10000);
 
     await element(by.id("prescription-photo-uri-input")).replaceText(
       "file://tmp/prescription.jpg"
@@ -18,21 +20,23 @@ describe("App launch smoke test", () => {
     await waitFor(element(by.id("prescription-condition-input")))
       .toBeVisible()
       .whileElement(by.id("prescription-form-screen"))
-      .scroll(120, "down");
+      .scroll(180, "down", 0.5, 0.25);
     await element(by.id("prescription-condition-input")).replaceText("Hypertension");
     await waitFor(element(by.id("prescription-tags-input")))
       .toBeVisible()
       .whileElement(by.id("prescription-form-screen"))
-      .scroll(120, "down");
+      .scroll(180, "down", 0.5, 0.25);
     await element(by.id("prescription-tags-input")).replaceText("bp,daily");
     await waitFor(element(by.id("prescription-save-button")))
       .toBeVisible()
       .whileElement(by.id("prescription-form-screen"))
-      .scroll(200, "down");
+      .scroll(220, "down", 0.5, 0.25);
     await element(by.id("prescription-save-button")).tap();
 
     await element(by.text("OK")).tap();
-    await expect(element(by.id("prescription-detail-screen"))).toBeVisible();
-    await expect(element(by.id("prescription-detail-photo-uri"))).toBeVisible();
+    await waitFor(element(by.id("prescription-detail-screen")))
+      .toBeVisible()
+      .withTimeout(10000);
+    await expect(element(by.id("prescription-detail-image"))).toBeVisible();
   });
 });
