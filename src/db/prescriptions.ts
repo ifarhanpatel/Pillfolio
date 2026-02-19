@@ -93,6 +93,48 @@ export const listPrescriptionsByPatient = async (
   return rows.map(mapPrescriptionRow);
 };
 
+type SearchPrescriptionsInput = {
+  query?: string;
+  patientId?: string;
+  searchAllPatients?: boolean;
+};
+
+export const searchPrescriptions = async (
+  driver: SqlDriver,
+  input: SearchPrescriptionsInput
+): Promise<Prescription[]> => {
+  const normalizedQuery = (input.query ?? "").trim().toLowerCase();
+  const isSearchingAllPatients = Boolean(input.searchAllPatients);
+  const queryPattern = `%${normalizedQuery}%`;
+
+  if (!isSearchingAllPatients && input.patientId) {
+    if (!normalizedQuery) {
+      return listPrescriptionsByPatient(driver, input.patientId);
+    }
+
+    const rows = await driver.getAllAsync<Prescription & { tagsJson: string }>(
+      "SELECT * FROM prescriptions WHERE patientId = ? AND (LOWER(doctorName) LIKE ? OR LOWER(condition) LIKE ? OR LOWER(tagsJson) LIKE ?) ORDER BY visitDate DESC;",
+      [input.patientId, queryPattern, queryPattern, queryPattern]
+    );
+
+    return rows.map(mapPrescriptionRow);
+  }
+
+  if (!normalizedQuery) {
+    const rows = await driver.getAllAsync<Prescription & { tagsJson: string }>(
+      "SELECT * FROM prescriptions ORDER BY visitDate DESC;"
+    );
+    return rows.map(mapPrescriptionRow);
+  }
+
+  const rows = await driver.getAllAsync<Prescription & { tagsJson: string }>(
+    "SELECT * FROM prescriptions WHERE (LOWER(doctorName) LIKE ? OR LOWER(condition) LIKE ? OR LOWER(tagsJson) LIKE ?) ORDER BY visitDate DESC;",
+    [queryPattern, queryPattern, queryPattern]
+  );
+
+  return rows.map(mapPrescriptionRow);
+};
+
 export const updatePrescription = async (
   driver: SqlDriver,
   id: string,

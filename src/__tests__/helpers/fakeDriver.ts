@@ -164,10 +164,32 @@ export class FakeDriver implements SqlDriver {
         .map((row) => ({ ...row })) as T[];
     }
 
-    if (sql.startsWith("SELECT * FROM prescriptions WHERE patientId")) {
-      const [patientId] = params;
+    if (sql.startsWith("SELECT * FROM prescriptions")) {
+      const isPatientScoped = sql.includes("WHERE patientId = ?");
+      const hasSearchQuery = sql.includes("LOWER(doctorName) LIKE");
+      const queryIndex = isPatientScoped ? 1 : 0;
+      const queryPattern = hasSearchQuery ? asString(params[queryIndex]).toLowerCase() : "";
+      const query = queryPattern.replace(/%/g, "");
+
       return this.prescriptions
-        .filter((row) => row.patientId === patientId)
+        .filter((row) => {
+          if (isPatientScoped && row.patientId !== params[0]) {
+            return false;
+          }
+
+          if (!hasSearchQuery) {
+            return true;
+          }
+
+          const searchable = [
+            row.doctorName,
+            row.condition,
+            row.tagsJson ?? JSON.stringify(row.tags ?? []),
+          ]
+            .join(" ")
+            .toLowerCase();
+          return searchable.includes(query);
+        })
         .sort((a, b) => b.visitDate.localeCompare(a.visitDate))
         .map((row) => ({ ...row })) as T[];
     }

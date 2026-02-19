@@ -1,4 +1,4 @@
-import { render, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, waitFor } from '@testing-library/react-native';
 
 import { patientFixture, prescriptionFixture } from '@/src/__tests__/fixtures';
 import { sortPrescriptionsByVisitDateDesc, TimelineScreen } from '@/src/screens/TimelineScreen';
@@ -49,22 +49,83 @@ describe('TimelineScreen', () => {
       tags: ['night'],
     });
 
-    const { getByTestId, getByText } = render(
-      <TimelineScreen
-        loadData={async () => ({
-          patient,
-          prescriptions: [first, second],
-        })}
-      />
-    );
+    const loadData = jest.fn(async () => ({
+      patient,
+      prescriptions: [first, second],
+    }));
+    const { getByTestId, getByText } = render(<TimelineScreen loadData={loadData} />);
 
     await waitFor(() => {
-      expect(getByTestId('timeline-card-prescription-2')).toBeTruthy();
+      expect(loadData).toHaveBeenCalled();
+      expect(getByText('Dr. Second')).toBeTruthy();
     });
 
     expect(getByText("Jordan's prescriptions")).toBeTruthy();
-    expect(getByTestId('timeline-search-placeholder')).toBeTruthy();
-    expect(getByText('Dr. Second')).toBeTruthy();
+    expect(getByTestId('timeline-card-prescription-2')).toBeTruthy();
+    expect(getByTestId('timeline-search-panel')).toBeTruthy();
     expect(getByText('Condition B')).toBeTruthy();
+  });
+
+  test('passes query and search scope to loadData', async () => {
+    const patient = patientFixture({ id: 'patient-a', name: 'Jordan' });
+    const byPatient = prescriptionFixture({
+      id: 'patient-only',
+      patientId: patient.id,
+      doctorName: 'Dr. Local',
+    });
+    const globalMatch = prescriptionFixture({
+      id: 'global-match',
+      patientId: 'patient-b',
+      doctorName: 'Dr. Remote',
+    });
+
+    const loadData = jest.fn(
+      async ({ query, searchAllPatients }: { query: string; searchAllPatients: boolean }) => {
+        const all = [byPatient, globalMatch];
+        const scoped = searchAllPatients ? all : [byPatient];
+        const normalized = query.trim().toLowerCase();
+
+        return {
+          patient,
+          prescriptions: scoped.filter((item) => {
+            if (!normalized) {
+              return true;
+            }
+
+            const searchable = `${item.doctorName} ${item.condition} ${item.tags.join(' ')}`.toLowerCase();
+            return searchable.includes(normalized);
+          }),
+        };
+      }
+    );
+
+    const { getByTestId, queryByText } = render(<TimelineScreen loadData={loadData} />);
+
+    await waitFor(() => {
+      expect(loadData).toHaveBeenLastCalledWith({ query: '', searchAllPatients: false });
+    });
+
+    fireEvent.changeText(getByTestId('timeline-search-input'), 'remote');
+
+    await waitFor(() => {
+      expect(loadData).toHaveBeenLastCalledWith({
+        query: 'remote',
+        searchAllPatients: false,
+      });
+    });
+    expect(queryByText('Dr. Remote')).toBeNull();
+
+    fireEvent.press(getByTestId('timeline-search-scope-toggle'));
+
+    await waitFor(() => {
+      expect(loadData).toHaveBeenLastCalledWith({
+        query: 'remote',
+        searchAllPatients: true,
+      });
+    });
+
+    await waitFor(() => {
+      expect(queryByText('Dr. Remote')).toBeTruthy();
+    });
   });
 });

@@ -1,55 +1,77 @@
 describe('Timeline and detail viewer', () => {
-  const openDetailWithRetry = async (url) => {
-    const attempts = [
-      async () => {
-        await device.launchApp({
-          newInstance: true,
-          delete: true,
-          url,
-        });
-      },
-      async () => {
-        await device.launchApp({ newInstance: true, delete: true });
-        await device.openURL({ url });
-      },
-    ];
-
-    for (const attempt of attempts) {
+  const ensureVisible = async (testID) => {
+    for (let attempt = 0; attempt < 6; attempt += 1) {
       try {
-        await attempt();
-        await waitFor(element(by.id('prescription-detail-screen'))).toBeVisible().withTimeout(60000);
+        await expect(element(by.id(testID))).toBeVisible();
         return;
       } catch {
-        // Try the next deep-link strategy.
+        try {
+          await element(by.id('prescription-form-screen')).scroll(180, 'down', 0.5, 0.2);
+        } catch {
+          // Ignore scroll failures; view may already be at bottom.
+        }
       }
     }
 
-    throw new Error('Unable to open prescription detail via deep link.');
+    await expect(element(by.id(testID))).toBeVisible();
   };
 
-  it('opens the timeline tab', async () => {
-    await device.launchApp({ newInstance: true, delete: true });
+  const dismissOkAlertIfPresent = async () => {
+    try {
+      await waitFor(element(by.text('OK'))).toBeVisible().withTimeout(2500);
+      await element(by.text('OK')).tap();
+    } catch {
+      // Some iOS runs navigate without rendering the Alert button.
+    }
+  };
 
+  beforeEach(async () => {
+    await device.launchApp({ newInstance: true, delete: true });
+  });
+
+  it('opens the timeline tab', async () => {
     await element(by.id('tab-timeline')).tap();
 
-    await expect(element(by.id('timeline-screen'))).toBeVisible();
-    await expect(element(by.id('timeline-search-placeholder'))).toBeVisible();
+    await waitFor(element(by.id('timeline-screen'))).toBeVisible().withTimeout(15000);
+    await expect(element(by.id('timeline-search-panel'))).toExist();
+  });
+
+  it('filters timeline cards with search input', async () => {
+    await element(by.id('tab-timeline')).tap();
+    await waitFor(element(by.id('timeline-search-input'))).toBeVisible().withTimeout(10000);
+
+    await element(by.id('timeline-search-input')).replaceText('missing-term');
+    await expect(element(by.id('timeline-empty-state'))).toBeVisible();
+    await expect(element(by.id('timeline-search-clear'))).toBeVisible();
+    await element(by.id('timeline-search-scope-toggle')).tap();
+    await expect(element(by.text('Searching all patients'))).toBeVisible();
+    await element(by.id('timeline-search-clear')).tap();
+    await expect(element(by.id('timeline-search-input'))).toBeVisible();
   });
 
   it('opens fullscreen image viewer from detail screen', async () => {
-    const params = new URLSearchParams({
-      photoUri: 'file://detox-preview.jpg',
-      doctorName: 'Dr. Detox',
-      doctorSpecialty: 'General Medicine',
-      condition: 'Sample Condition',
-      tags: 'night,demo',
-      visitDate: '2025-02-01',
-      notes: 'Detox preview',
-    }).toString();
+    await element(by.id('patients-add-prescription-cta')).tap();
+    await waitFor(element(by.id('prescription-form-screen'))).toBeVisible().withTimeout(10000);
+    await waitFor(element(by.text('Self'))).toBeVisible().withTimeout(20000);
+    await element(by.id('prescription-photo-uri-input')).replaceText('file://tmp/fullscreen.jpg');
+    await element(by.id('prescription-doctor-input')).replaceText('Dr. Detox');
+    try {
+      await element(by.id('prescription-doctor-input')).tapReturnKey();
+    } catch {}
+    await ensureVisible('prescription-condition-input');
+    await element(by.id('prescription-condition-input')).replaceText('Sample Condition');
+    await ensureVisible('prescription-tags-input');
+    await element(by.id('prescription-tags-input')).replaceText('night,demo');
+    await ensureVisible('visit-date-today');
+    await element(by.id('visit-date-today')).tap();
+    await ensureVisible('prescription-save-button');
+    await element(by.id('prescription-save-button')).tap();
+    await dismissOkAlertIfPresent();
 
-    await openDetailWithRetry(`pillfolio:///prescription-detail?${params}`);
+    await waitFor(element(by.id('prescription-detail-screen'))).toBeVisible().withTimeout(20000);
+    await waitFor(element(by.id('prescription-detail-image'))).toBeVisible().withTimeout(10000);
     await element(by.id('prescription-detail-image')).tap();
-    await expect(element(by.id('prescription-image-fullscreen'))).toBeVisible();
+    await waitFor(element(by.id('prescription-image-fullscreen'))).toBeVisible().withTimeout(10000);
     await element(by.id('prescription-image-close')).tap();
   });
 });

@@ -1,4 +1,4 @@
-import { render, waitFor } from '@testing-library/react-native';
+import { render } from '@testing-library/react-native';
 
 import { PatientsScreen } from '@/src/screens/PatientsScreen';
 import { PatientFormScreen } from '@/src/screens/PatientFormScreen';
@@ -21,6 +21,43 @@ jest.mock('expo-router', () => ({
   }),
 }));
 
+jest.mock('@/src/services', () => ({
+  createAppBoundaries: () => ({
+    db: {
+      open: jest.fn(async () => ({
+        runAsync: jest.fn(async () => undefined),
+        getFirstAsync: jest.fn(async () => null),
+        getAllAsync: jest.fn(async () => [
+          {
+            id: 'patient-1',
+            name: 'Default Patient',
+            relationship: 'Self',
+            gender: null,
+            createdAt: '2025-01-01T00:00:00.000Z',
+            updatedAt: '2025-01-01T00:00:00.000Z',
+          },
+        ]),
+        execBatchAsync: jest.fn(async () => undefined),
+      })),
+      initialize: jest.fn(async () => undefined),
+    },
+    imagePicker: {
+      pickImage: jest.fn(async () => null),
+    },
+    imageCompression: {
+      compressImage: jest.fn(async (uri: string) => uri),
+    },
+    fileStorage: {
+      saveImage: jest.fn(async (uri: string) => uri),
+      deleteFile: jest.fn(async () => undefined),
+    },
+  }),
+  ensureDefaultPatient: jest.fn(async () => 'patient-1'),
+  parseTagInput: jest.fn(() => []),
+  pickPrescriptionPhoto: jest.fn(async () => null),
+  addPrescription: jest.fn(),
+}));
+
 describe('Navigation skeleton screens', () => {
   it('renders Patients screen CTA', () => {
     const { getByText, getByTestId } = render(<PatientsScreen />);
@@ -38,7 +75,7 @@ describe('Navigation skeleton screens', () => {
   });
 
   it('renders Timeline screen placeholder', async () => {
-    const { getByText, getByTestId } = render(
+    const { getByText, findByTestId } = render(
       <TimelineScreen
         loadData={async () => ({
           patient: null,
@@ -47,28 +84,27 @@ describe('Navigation skeleton screens', () => {
       />
     );
 
-    await waitFor(() => {
-      expect(getByText('Timeline')).toBeTruthy();
-      expect(getByTestId('timeline-search-placeholder')).toBeTruthy();
-    });
+    await findByTestId('timeline-empty-state');
+    expect(getByText('Timeline')).toBeTruthy();
+    expect(await findByTestId('timeline-search-panel')).toBeTruthy();
   });
 
   it('renders Add Prescription form content', async () => {
-    const { getByText, getByTestId } = render(<PrescriptionFormScreen mode="add" />);
+    const { getByText, getByTestId, findByTestId } = render(
+      <PrescriptionFormScreen mode="add" />
+    );
 
-    await waitFor(() => {
-      expect(getByText('Add Prescription')).toBeTruthy();
-      expect(getByTestId('prescription-form-photo')).toBeTruthy();
-      expect(getByTestId('prescription-form-fields')).toBeTruthy();
-    });
+    await findByTestId('patient-option-patient-1');
+    expect(getByText('Add Prescription')).toBeTruthy();
+    expect(getByTestId('prescription-form-photo')).toBeTruthy();
+    expect(getByTestId('prescription-form-fields')).toBeTruthy();
   });
 
   it('renders Edit Prescription form content', async () => {
-    const { getByText } = render(<PrescriptionFormScreen mode="edit" />);
+    const { getByText, findByTestId } = render(<PrescriptionFormScreen mode="edit" />);
 
-    await waitFor(() => {
-      expect(getByText('Edit Prescription')).toBeTruthy();
-    });
+    await findByTestId('patient-option-patient-1');
+    expect(getByText('Edit Prescription')).toBeTruthy();
   });
 
   it('renders Prescription detail actions', () => {

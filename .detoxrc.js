@@ -70,6 +70,8 @@ module.exports = {
       type: "android.apk",
       binaryPath:
         "android/app/build/outputs/apk/debug/app-debug.apk",
+      testBinaryPath:
+        "android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk",
       build:
         "cd android && ./gradlew :app:assembleDebug :app:assembleAndroidTest -DtestBuildType=debug -PreactNativeArchitectures=x86_64",
       reversePorts: [8081],
@@ -78,6 +80,8 @@ module.exports = {
       type: "android.apk",
       binaryPath:
         "android/app/build/outputs/apk/release/app-release.apk",
+      testBinaryPath:
+        "android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk",
       build:
         "cd android && ./gradlew :app:assembleRelease :app:assembleAndroidTest -DtestBuildType=release -PreactNativeArchitectures=x86_64",
       reversePorts: [8081],
