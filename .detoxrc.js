@@ -70,16 +70,20 @@ module.exports = {
       type: "android.apk",
       binaryPath:
         "android/app/build/outputs/apk/debug/app-debug.apk",
+      testBinaryPath:
+        "android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk",
       build:
-        "cd android && ./gradlew assembleDebug assembleAndroidTest -DtestBuildType=debug",
+        "cd android && ./gradlew app:assembleDebug app:assembleAndroidTest -DtestBuildType=debug",
       reversePorts: [8081],
     },
     "android.release": {
       type: "android.apk",
       binaryPath:
         "android/app/build/outputs/apk/release/app-release.apk",
+      testBinaryPath:
+        "android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk",
       build:
-        "cd android && ./gradlew assembleRelease assembleAndroidTest -DtestBuildType=release",
+        "cd android && ./gradlew app:assembleRelease app:assembleAndroidTest -DtestBuildType=release",
       reversePorts: [8081],
     },
   },
@@ -93,7 +97,7 @@ module.exports = {
     emulator: {
       type: "android.emulator",
       device: {
-        avdName: "Pixel_9a",
+        avdName: process.env.DETOX_AVD_NAME || "test",
       },
     },
   },
