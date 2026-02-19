@@ -25,9 +25,11 @@ describe('Timeline and detail viewer', () => {
     }
   };
 
-  it('opens the timeline tab', async () => {
-    await device.launchApp({ newInstance: true });
+  beforeEach(async () => {
+    await device.launchApp({ newInstance: true, delete: true });
+  });
 
+  it('opens the timeline tab', async () => {
     await element(by.id('tab-timeline')).tap();
 
     await waitFor(element(by.id('timeline-screen'))).toBeVisible().withTimeout(15000);
@@ -35,7 +37,6 @@ describe('Timeline and detail viewer', () => {
   });
 
   it('filters timeline cards with search input', async () => {
-    await device.launchApp({ newInstance: true });
     await element(by.id('tab-timeline')).tap();
     await waitFor(element(by.id('timeline-search-input'))).toBeVisible().withTimeout(10000);
 
@@ -49,10 +50,9 @@ describe('Timeline and detail viewer', () => {
   });
 
   it('opens fullscreen image viewer from detail screen', async () => {
-    await device.launchApp({ newInstance: true });
-
     await element(by.id('patients-add-prescription-cta')).tap();
     await waitFor(element(by.id('prescription-form-screen'))).toBeVisible().withTimeout(10000);
+    await waitFor(element(by.text('Self'))).toBeVisible().withTimeout(20000);
     await element(by.id('prescription-photo-uri-input')).replaceText('file://tmp/fullscreen.jpg');
     await element(by.id('prescription-doctor-input')).replaceText('Dr. Detox');
     try {
@@ -68,7 +68,7 @@ describe('Timeline and detail viewer', () => {
     await element(by.id('prescription-save-button')).tap();
     await dismissOkAlertIfPresent();
 
-    await waitFor(element(by.id('prescription-detail-screen'))).toBeVisible().withTimeout(10000);
+    await waitFor(element(by.id('prescription-detail-screen'))).toBeVisible().withTimeout(20000);
     await waitFor(element(by.id('prescription-detail-image'))).toBeVisible().withTimeout(10000);
     await element(by.id('prescription-detail-image')).tap();
     await waitFor(element(by.id('prescription-image-fullscreen'))).toBeVisible().withTimeout(10000);

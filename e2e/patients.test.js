@@ -1,6 +1,6 @@
 describe("Patient CRUD flows", () => {
   beforeEach(async () => {
-    await device.launchApp({ newInstance: true });
+    await device.launchApp({ newInstance: true, delete: true });
   });
 
   it("creates and edits a patient", async () => {

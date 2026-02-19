@@ -12,10 +12,12 @@ import { useRouter } from "expo-router";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { listPatients } from "@/src/db/patients";
+import { getPrescriptionById } from "@/src/db/prescriptions";
 import type { Patient } from "@/src/db/types";
 import {
   addPrescription,
   createAppBoundaries,
+  editPrescription,
   ensureDefaultPatient,
   parseTagInput,
   pickPrescriptionPhoto,
@@ -25,6 +27,7 @@ export type PrescriptionFormMode = "add" | "edit";
 
 type PrescriptionFormScreenProps = {
   mode: PrescriptionFormMode;
+  prescriptionId?: string;
 };
 
 const formatDate = (date: Date): string => {
@@ -46,11 +49,13 @@ const buildDateOptions = (today: Date, daysBefore: number, daysAfter: number): s
   return options;
 };
 
-export function PrescriptionFormScreen({ mode }: PrescriptionFormScreenProps) {
+export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFormScreenProps) {
+  const isEditMode = mode === "edit";
   const title = mode === "edit" ? "Edit Prescription" : "Add Prescription";
   const boundaries = useMemo(() => createAppBoundaries(), []);
   const router = useRouter();
 
+  const [isLoading, setIsLoading] = useState(true);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [patientId, setPatientId] = useState("");
   const [photoUri, setPhotoUri] = useState("");
@@ -83,20 +88,46 @@ export function PrescriptionFormScreen({ mode }: PrescriptionFormScreenProps) {
         }
 
         setPatients(rows);
+        if (isEditMode && prescriptionId) {
+          const existing = await getPrescriptionById(driver, prescriptionId);
+          if (!existing) {
+            setMessage("Prescription not found.");
+            return;
+          }
+
+          if (!active) {
+            return;
+          }
+
+          setPatientId(existing.patientId);
+          setPhotoUri(existing.photoUri);
+          setDoctorName(existing.doctorName);
+          setDoctorSpecialty(existing.doctorSpecialty ?? "");
+          setCondition(existing.condition);
+          setTagsInput(existing.tags.join(", "));
+          setVisitDate(existing.visitDate);
+          setNotes(existing.notes ?? "");
+          return;
+        }
+
         setPatientId((current) => current || defaultPatientId);
       } catch (error) {
         if (active) {
           setMessage(error instanceof Error ? error.message : "Unable to load patients.");
         }
+      } finally {
+        if (active) {
+          setIsLoading(false);
+        }
       }
     };
 
-    loadPatients();
+    void loadPatients();
 
     return () => {
       active = false;
     };
-  }, [boundaries]);
+  }, [boundaries, isEditMode, prescriptionId]);
 
   const onPickPhoto = async (source: "camera" | "library") => {
     setMessage("");
@@ -116,6 +147,15 @@ export function PrescriptionFormScreen({ mode }: PrescriptionFormScreenProps) {
   };
 
   const onSave = async () => {
+    if (isLoading) {
+      return;
+    }
+
+    if (isEditMode && !prescriptionId) {
+      setMessage("Prescription not found.");
+      return;
+    }
+
     if (__DEV__) {
       console.log("[PrescriptionForm] save:start", {
         mode,
@@ -130,9 +170,10 @@ export function PrescriptionFormScreen({ mode }: PrescriptionFormScreenProps) {
 
     setSaving(true);
     setMessage("");
+    setErrors({});
 
     try {
-      const result = await addPrescription(boundaries, {
+      const draft = {
         patientId,
         photoUri,
         doctorName,
@@ -141,22 +182,37 @@ export function PrescriptionFormScreen({ mode }: PrescriptionFormScreenProps) {
         tags: parsedTags,
         visitDate,
         notes,
-      });
+      };
+      const result =
+        isEditMode && prescriptionId
+          ? await editPrescription(boundaries, {
+              prescriptionId,
+              ...draft,
+            })
+          : await addPrescription(boundaries, draft);
 
       if (!result.ok) {
         if (__DEV__) {
           console.log("[PrescriptionForm] save:validation-failed", result.errors);
         }
         setErrors(result.errors);
+        if (result.errors.prescriptionId) {
+          setMessage(result.errors.prescriptionId);
+        }
         return;
       }
 
       setErrors({});
+
       if (__DEV__) {
         console.log("[PrescriptionForm] save:success", { id: result.prescription.id });
       }
-      Alert.alert("Prescription Saved", "Prescription was saved successfully.");
-      router.push({
+
+      Alert.alert(
+        isEditMode ? "Prescription Updated" : "Prescription Saved",
+        isEditMode ? "Prescription changes were saved successfully." : "Prescription was saved successfully."
+      );
+      router.replace({
         pathname: "/prescription-detail",
         params: { id: result.prescription.id },
       });
@@ -172,6 +228,16 @@ export function PrescriptionFormScreen({ mode }: PrescriptionFormScreenProps) {
       setSaving(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <ScrollView contentContainerStyle={styles.scrollContent} testID="prescription-form-screen">
+        <ThemedView style={styles.container}>
+          <ThemedText type="default">Loading prescription...</ThemedText>
+        </ThemedView>
+      </ScrollView>
+    );
+  }
 
   return (
     <ScrollView contentContainerStyle={styles.scrollContent} testID="prescription-form-screen">
@@ -340,7 +406,7 @@ export function PrescriptionFormScreen({ mode }: PrescriptionFormScreenProps) {
           <Pressable
             style={[styles.primaryButton, saving ? styles.primaryButtonDisabled : null]}
             onPress={onSave}
-            disabled={saving}
+            disabled={saving || isLoading}
             testID="prescription-save-button"
           >
             <ThemedText type="defaultSemiBold">

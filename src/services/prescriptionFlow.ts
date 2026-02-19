@@ -1,5 +1,10 @@
 import { createPatient, listPatients } from "../db/patients";
-import { createPrescription } from "../db/prescriptions";
+import {
+  createPrescription,
+  deletePrescription,
+  getPrescriptionById,
+  updatePrescription,
+} from "../db/prescriptions";
 import type { Prescription } from "../db/types";
 import { DEFAULT_PATIENT_NAME } from "../constants/app";
 import { createId } from "../utils/id";
@@ -47,6 +52,10 @@ export type AddPrescriptionSuccess = {
 
 export type AddPrescriptionResult = AddPrescriptionFailure | AddPrescriptionSuccess;
 
+export type EditPrescriptionDraft = AddPrescriptionDraft & {
+  prescriptionId: string;
+};
+
 export const parseTagInput = (rawTags: string): string[] => {
   const seen = new Set<string>();
   const parsed: string[] = [];
@@ -89,6 +98,27 @@ const validateDraft = (draft: AddPrescriptionDraft): AddPrescriptionFailure | nu
 
   return null;
 };
+
+const toCreatePayload = (draft: AddPrescriptionDraft, photoUri: string) => ({
+  patientId: draft.patientId.trim(),
+  photoUri,
+  doctorName: draft.doctorName.trim(),
+  doctorSpecialty: normalizeOptional(draft.doctorSpecialty),
+  condition: draft.condition.trim(),
+  tags: draft.tags,
+  visitDate: draft.visitDate,
+  notes: normalizeOptional(draft.notes),
+});
+
+const toEditPayload = (draft: AddPrescriptionDraft, photoUri: string) => ({
+  photoUri,
+  doctorName: draft.doctorName.trim(),
+  doctorSpecialty: normalizeOptional(draft.doctorSpecialty),
+  condition: draft.condition.trim(),
+  tags: draft.tags,
+  visitDate: draft.visitDate,
+  notes: normalizeOptional(draft.notes),
+});
 
 export const ensureDefaultPatient = async (boundaries: AppBoundaries): Promise<string> => {
   const driver = await boundaries.db.open();
@@ -153,14 +183,7 @@ export const addPrescription = async (
   try {
     logFlow("addPrescription:create-prescription");
     const created = await createPrescription(driver, {
-      patientId: draft.patientId.trim(),
-      photoUri: storedUri,
-      doctorName: draft.doctorName.trim(),
-      doctorSpecialty: normalizeOptional(draft.doctorSpecialty),
-      condition: draft.condition.trim(),
-      tags: draft.tags,
-      visitDate: draft.visitDate,
-      notes: normalizeOptional(draft.notes),
+      ...toCreatePayload(draft, storedUri),
     });
 
     logFlow("addPrescription:success", { id: created.id });
@@ -175,4 +198,96 @@ export const addPrescription = async (
     await boundaries.fileStorage.deleteFile(storedUri).catch(() => undefined);
     throw error;
   }
+};
+
+export const editPrescription = async (
+  boundaries: AppBoundaries,
+  draft: EditPrescriptionDraft
+): Promise<AddPrescriptionResult> => {
+  const validationError = validateDraft(draft);
+  if (validationError) {
+    return validationError;
+  }
+
+  const driver = await boundaries.db.open();
+  await boundaries.db.initialize(driver);
+
+  const existing = await getPrescriptionById(driver, draft.prescriptionId.trim());
+  if (!existing) {
+    return {
+      ok: false,
+      errors: {
+        prescriptionId: "Prescription not found.",
+      },
+    };
+  }
+
+  const nextPhotoUriRaw = draft.photoUri.trim();
+  const isPhotoChanged = nextPhotoUriRaw !== existing.photoUri;
+
+  let nextStoredPhotoUri = existing.photoUri;
+  let previousPhotoToDelete: string | null = null;
+
+  if (isPhotoChanged) {
+    const compressedUri = await boundaries.imageCompression.compressImage(nextPhotoUriRaw);
+    nextStoredPhotoUri = await boundaries.fileStorage.saveImage(
+      compressedUri,
+      `prescription-${createId()}.jpg`
+    );
+    previousPhotoToDelete = existing.photoUri;
+  }
+
+  try {
+    const updated = await updatePrescription(
+      driver,
+      existing.id,
+      toEditPayload(draft, nextStoredPhotoUri),
+      () => boundaries.clock.nowIso()
+    );
+
+    if (!updated) {
+      if (isPhotoChanged) {
+        await boundaries.fileStorage.deleteFile(nextStoredPhotoUri).catch(() => undefined);
+      }
+
+      return {
+        ok: false,
+        errors: {
+          prescriptionId: "Prescription not found.",
+        },
+      };
+    }
+
+    if (previousPhotoToDelete) {
+      await boundaries.fileStorage.deleteFile(previousPhotoToDelete).catch(() => undefined);
+    }
+
+    return {
+      ok: true,
+      prescription: updated,
+    };
+  } catch (error) {
+    if (isPhotoChanged) {
+      await boundaries.fileStorage.deleteFile(nextStoredPhotoUri).catch(() => undefined);
+    }
+    throw error;
+  }
+};
+
+export const deletePrescriptionWithCleanup = async (
+  boundaries: AppBoundaries,
+  prescriptionId: string
+): Promise<boolean> => {
+  const driver = await boundaries.db.open();
+  await boundaries.db.initialize(driver);
+
+  const existing = await getPrescriptionById(driver, prescriptionId);
+  if (!existing) {
+    return false;
+  }
+
+  await deletePrescription(driver, prescriptionId);
+  await boundaries.fileStorage.deleteFile(existing.photoUri);
+
+  return true;
 };

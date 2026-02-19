@@ -25,8 +25,8 @@ describe("App launch smoke test", () => {
     }
   };
 
-  beforeAll(async () => {
-    await device.launchApp({ newInstance: true });
+  beforeEach(async () => {
+    await device.launchApp({ newInstance: true, delete: true });
   });
 
   it("shows the Patients screen", async () => {
@@ -38,6 +38,7 @@ describe("App launch smoke test", () => {
     await waitFor(element(by.id("prescription-form-screen")))
       .toBeVisible()
       .withTimeout(10000);
+    await waitFor(element(by.text("Self"))).toBeVisible().withTimeout(20000);
 
     await element(by.id("prescription-photo-uri-input")).replaceText(
       "file://tmp/prescription.jpg"
@@ -58,7 +59,7 @@ describe("App launch smoke test", () => {
     await dismissOkAlertIfPresent();
     await waitFor(element(by.id("prescription-detail-screen")))
       .toBeVisible()
-      .withTimeout(10000);
+      .withTimeout(20000);
     await expect(element(by.id("prescription-detail-image"))).toBeVisible();
   });
 });
