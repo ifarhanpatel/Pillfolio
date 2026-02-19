@@ -2,8 +2,18 @@ import { useLocalSearchParams } from "expo-router";
 
 import { PatientFormMode, PatientFormScreen } from "@/src/screens/PatientFormScreen";
 
+const firstParam = (value: string | string[] | undefined): string | undefined => {
+  if (Array.isArray(value)) {
+    return value[0];
+  }
+
+  return value;
+};
+
 function normalizeMode(id: string | string[] | undefined): PatientFormMode {
-  if (typeof id === "string" && id.trim().length > 0) {
+  const normalizedId = firstParam(id);
+
+  if (normalizedId && normalizedId.trim().length > 0) {
     return "edit";
   }
 
@@ -11,9 +21,9 @@ function normalizeMode(id: string | string[] | undefined): PatientFormMode {
 }
 
 export default function AddEditPatientRoute() {
-  const { id } = useLocalSearchParams<{ id?: string }>();
+  const { id } = useLocalSearchParams<{ id?: string | string[] }>();
   const mode = normalizeMode(id);
-  const patientId = typeof id === "string" ? id : undefined;
+  const patientId = firstParam(id);
 
   return <PatientFormScreen mode={mode} patientId={patientId} />;
 }
