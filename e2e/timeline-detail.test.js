@@ -1,25 +1,35 @@
 describe('Timeline and detail viewer', () => {
   const openDetailWithRetry = async (url) => {
-    const attempt = async (timeoutMs) => {
-      await device.openURL({ url });
-      await waitFor(element(by.id('prescription-detail-screen'))).toBeVisible().withTimeout(timeoutMs);
-    };
+    const attempts = [
+      async () => {
+        await device.launchApp({
+          newInstance: true,
+          delete: true,
+          url,
+        });
+      },
+      async () => {
+        await device.launchApp({ newInstance: true, delete: true });
+        await device.openURL({ url });
+      },
+    ];
 
-    try {
-      await attempt(30000);
-      return;
-    } catch {
-      // Retry once after re-focusing app route in case the first deep link is swallowed on cold boot.
-      await waitFor(element(by.id('patients-screen'))).toBeVisible().withTimeout(60000);
-      await attempt(45000);
+    for (const attempt of attempts) {
+      try {
+        await attempt();
+        await waitFor(element(by.id('prescription-detail-screen'))).toBeVisible().withTimeout(60000);
+        return;
+      } catch {
+        // Try the next deep-link strategy.
+      }
     }
+
+    throw new Error('Unable to open prescription detail via deep link.');
   };
 
-  beforeEach(async () => {
-    await device.launchApp({ newInstance: true, delete: true });
-  });
-
   it('opens the timeline tab', async () => {
+    await device.launchApp({ newInstance: true, delete: true });
+
     await element(by.id('tab-timeline')).tap();
 
     await expect(element(by.id('timeline-screen'))).toBeVisible();
@@ -37,7 +47,6 @@ describe('Timeline and detail viewer', () => {
       notes: 'Detox preview',
     }).toString();
 
-    await waitFor(element(by.id('patients-screen'))).toBeVisible().withTimeout(60000);
     await openDetailWithRetry(`pillfolio:///prescription-detail?${params}`);
     await element(by.id('prescription-detail-image')).tap();
     await expect(element(by.id('prescription-image-fullscreen'))).toBeVisible();

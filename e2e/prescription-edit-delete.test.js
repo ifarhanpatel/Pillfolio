@@ -15,6 +15,7 @@ describe("Prescription edit and delete flows", () => {
   it("edits and then deletes a prescription", async () => {
     await element(by.id("patients-add-prescription-cta")).tap();
     await expect(element(by.id("prescription-form-screen"))).toBeVisible();
+    await waitFor(element(by.text("Self"))).toBeVisible().withTimeout(20000);
 
     await element(by.id("prescription-photo-uri-input")).replaceText("file://tmp/prescription-edit.jpg");
     await element(by.id("prescription-doctor-input")).replaceText("Dr. Initial");

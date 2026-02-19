@@ -41,6 +41,7 @@ describe("App launch smoke test", () => {
   it("adds a prescription and navigates to detail", async () => {
     await element(by.id("patients-add-prescription-cta")).tap();
     await expect(element(by.id("prescription-form-screen"))).toBeVisible();
+    await waitFor(element(by.text("Self"))).toBeVisible().withTimeout(20000);
 
     await element(by.id("prescription-photo-uri-input")).replaceText(
       "file://tmp/prescription.jpg"
