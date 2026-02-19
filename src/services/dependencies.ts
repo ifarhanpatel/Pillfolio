@@ -1,3 +1,7 @@
+import * as FileSystem from "expo-file-system/legacy";
+import * as ImageManipulator from "expo-image-manipulator";
+import * as ImagePicker from "expo-image-picker";
+
 import { initializeDb, openDb } from "../db";
 import { STORAGE_DIRS } from "../constants/app";
 import type {
@@ -20,31 +24,7 @@ const defaultClockBoundary: ClockBoundary = {
   nowIso: () => new Date().toISOString(),
 };
 
-const loadImagePicker = async () => {
-  try {
-    return await import("expo-image-picker");
-  } catch {
-    throw new Error(
-      "expo-image-picker is required for camera/gallery support."
-    );
-  }
-};
-
-const loadImageManipulator = async () => {
-  try {
-    return await import("expo-image-manipulator");
-  } catch {
-    throw new Error("expo-image-manipulator is required for image compression.");
-  }
-};
-
-const loadFileSystem = async () => {
-  try {
-    return await import("expo-file-system/legacy");
-  } catch {
-    throw new Error("expo-file-system legacy API is required for image storage.");
-  }
-};
+export const resolveImagePickerMediaTypes = (): readonly ["images"] => ["images"];
 
 const resolveBaseDirectory = (fileSystem: Record<string, unknown>): string | null => {
   const directDocument = fileSystem.documentDirectory;
@@ -85,20 +65,19 @@ const joinUri = (baseUri: string, segment: string): string => {
 
 const defaultFileStorageBoundary: FileStorageBoundary = {
   async saveImage(sourceUri: string, targetFileName: string): Promise<string> {
-    const fileSystem = await loadFileSystem();
-    const baseDirectory = resolveBaseDirectory(fileSystem as unknown as Record<string, unknown>);
+    const baseDirectory = resolveBaseDirectory(FileSystem as unknown as Record<string, unknown>);
 
     if (!baseDirectory) {
       throw new Error("No writable app directory is available.");
     }
 
     const directoryUri = joinUri(baseDirectory, STORAGE_DIRS.prescriptions);
-    await fileSystem.makeDirectoryAsync(directoryUri, { intermediates: true });
+    await FileSystem.makeDirectoryAsync(directoryUri, { intermediates: true });
 
     const safeFileName = targetFileName.replace(/[^a-zA-Z0-9._-]/g, "_");
     const destinationUri = joinUri(directoryUri, safeFileName);
 
-    await fileSystem.copyAsync({
+    await FileSystem.copyAsync({
       from: sourceUri,
       to: destinationUri,
     });
@@ -106,14 +85,13 @@ const defaultFileStorageBoundary: FileStorageBoundary = {
     return destinationUri;
   },
   async deleteFile(fileUri: string): Promise<void> {
-    const fileSystem = await loadFileSystem();
-    const info = await fileSystem.getInfoAsync(fileUri);
+    const info = await FileSystem.getInfoAsync(fileUri);
 
     if (!info.exists) {
       return;
     }
 
-    await fileSystem.deleteAsync(fileUri, {
+    await FileSystem.deleteAsync(fileUri, {
       idempotent: true,
     });
   },
@@ -121,19 +99,30 @@ const defaultFileStorageBoundary: FileStorageBoundary = {
 
 const defaultImagePickerBoundary: ImagePickerBoundary = {
   async pickImage(source: ImageSource): Promise<PickedImage | null> {
-    const imagePicker = await loadImagePicker();
+    const imageMediaType = resolveImagePickerMediaTypes();
 
     if (source === "camera") {
-      const permission = await imagePicker.requestCameraPermissionsAsync();
+      const existingPermission = await ImagePicker.getCameraPermissionsAsync();
+      const permission =
+        existingPermission.granted === true
+          ? existingPermission
+          : await ImagePicker.requestCameraPermissionsAsync();
       if (permission.granted !== true) {
         throw new Error("Camera permission is required.");
       }
 
-      const result = await imagePicker.launchCameraAsync({
-        quality: 1,
-        allowsEditing: false,
-        mediaTypes: imagePicker.MediaTypeOptions.Images,
-      });
+      let result;
+      try {
+        result = await ImagePicker.launchCameraAsync({
+          quality: 1,
+          allowsEditing: false,
+          mediaTypes: imageMediaType,
+        });
+      } catch (error) {
+        const baseMessage =
+          error instanceof Error ? error.message : "Unable to launch camera.";
+        throw new Error(`Unable to launch camera on this Android device. ${baseMessage}`);
+      }
 
       if (result.canceled || !result.assets[0]?.uri) {
         return null;
@@ -142,15 +131,15 @@ const defaultImagePickerBoundary: ImagePickerBoundary = {
       return { uri: result.assets[0].uri };
     }
 
-    const permission = await imagePicker.requestMediaLibraryPermissionsAsync();
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (permission.granted !== true) {
       throw new Error("Photo library permission is required.");
     }
 
-    const result = await imagePicker.launchImageLibraryAsync({
+    const result = await ImagePicker.launchImageLibraryAsync({
       quality: 1,
       allowsEditing: false,
-      mediaTypes: imagePicker.MediaTypeOptions.Images,
+      mediaTypes: imageMediaType,
     });
 
     if (result.canceled || !result.assets[0]?.uri) {
@@ -163,13 +152,12 @@ const defaultImagePickerBoundary: ImagePickerBoundary = {
 
 const defaultImageCompressionBoundary: ImageCompressionBoundary = {
   async compressImage(sourceUri: string): Promise<string> {
-    const imageManipulator = await loadImageManipulator();
-    const result = await imageManipulator.manipulateAsync(
+    const result = await ImageManipulator.manipulateAsync(
       sourceUri,
       [],
       {
         compress: 0.7,
-        format: imageManipulator.SaveFormat.JPEG,
+        format: ImageManipulator.SaveFormat.JPEG,
       }
     );
 
