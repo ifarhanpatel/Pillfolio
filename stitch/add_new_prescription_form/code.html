@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Add New Prescription</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101922",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 antialiased">
+<div class="relative flex h-screen w-full flex-col overflow-hidden">
+<!-- Header -->
+<header class="flex items-center justify-between px-4 py-4 bg-background-light dark:bg-background-dark border-b border-primary/10">
+<div class="flex items-center gap-3">
+<button class="flex items-center justify-center size-10 rounded-full hover:bg-primary/10 transition-colors">
+<span class="material-symbols-outlined text-slate-900 dark:text-slate-100">arrow_back_ios_new</span>
+</button>
+<h1 class="text-xl font-bold tracking-tight">Add Prescription</h1>
+</div>
+<button class="text-primary font-semibold text-sm px-2">Cancel</button>
+</header>
+<!-- Scrollable Content -->
+<main class="flex-1 overflow-y-auto pb-32">
+<div class="max-w-md mx-auto p-4 space-y-6">
+<!-- Upload Section -->
+<section class="space-y-3">
+<h3 class="text-sm font-bold uppercase tracking-wider text-primary/80">Prescription Photo</h3>
+<div class="flex flex-col items-center justify-center gap-4 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 px-6 py-10 transition-all hover:border-primary/50">
+<div class="flex flex-col items-center gap-2 text-center">
+<span class="material-symbols-outlined text-4xl text-primary">add_a_photo</span>
+<p class="text-lg font-bold">Upload Prescription</p>
+<p class="text-sm text-slate-500 dark:text-slate-400">Take a clear photo of the physical paper</p>
+</div>
+<div class="flex gap-3 w-full">
+<button class="flex-1 flex items-center justify-center gap-2 rounded-lg bg-primary/10 py-3 text-primary font-bold text-sm">
+<span class="material-symbols-outlined text-lg">photo_library</span>
+                                Gallery
+                            </button>
+<button class="flex-1 flex items-center justify-center gap-2 rounded-lg bg-primary py-3 text-white font-bold text-sm">
+<span class="material-symbols-outlined text-lg">photo_camera</span>
+                                Camera
+                            </button>
+</div>
+</div>
+</section>
+<!-- Form Fields -->
+<section class="space-y-5">
+<h3 class="text-sm font-bold uppercase tracking-wider text-primary/80">Medical Details</h3>
+<!-- Doctor Name -->
+<div class="space-y-1.5">
+<label class="text-sm font-semibold flex items-center gap-1">
+                            Doctor Name
+                            <span class="text-primary">*</span>
+</label>
+<div class="relative group">
+<input class="w-full h-14 bg-white dark:bg-slate-800/50 border border-primary/20 rounded-xl px-4 text-base focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all" placeholder="e.g. Dr. Rajesh Kumar" type="text"/>
+<span class="material-symbols-outlined absolute right-4 top-4 text-slate-400">person</span>
+</div>
+</div>
+<!-- Condition -->
+<div class="space-y-1.5">
+<label class="text-sm font-semibold flex items-center gap-1">
+                            Condition
+                            <span class="text-primary">*</span>
+</label>
+<input class="w-full h-14 bg-white dark:bg-slate-800/50 border border-primary/20 rounded-xl px-4 text-base focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all" placeholder="e.g. Seasonal Allergy, Hypertension" type="text"/>
+</div>
+<!-- Date Picker -->
+<div class="space-y-1.5">
+<label class="text-sm font-semibold">Date of Visit</label>
+<div class="relative">
+<input class="w-full h-14 bg-white dark:bg-slate-800/50 border border-primary/20 rounded-xl px-4 text-base focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all appearance-none" type="date" value="2023-10-27"/>
+<span class="material-symbols-outlined absolute right-4 top-4 pointer-events-none text-slate-400">calendar_today</span>
+</div>
+</div>
+<!-- Tags / Family Member -->
+<div class="space-y-3">
+<label class="text-sm font-semibold">Tags &amp; Family Member</label>
+<div class="flex flex-wrap gap-2">
+<button class="px-4 py-2 rounded-full border border-primary bg-primary/10 text-primary text-xs font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-xs">face</span> Self
+                            </button>
+<button class="px-4 py-2 rounded-full border border-primary/20 bg-transparent text-slate-500 dark:text-slate-400 text-xs font-bold hover:bg-primary/5">
+                                Father
+                            </button>
+<button class="px-4 py-2 rounded-full border border-primary/20 bg-transparent text-slate-500 dark:text-slate-400 text-xs font-bold hover:bg-primary/5">
+                                Mother
+                            </button>
+<button class="px-4 py-2 rounded-full border border-primary/20 bg-transparent text-slate-500 dark:text-slate-400 text-xs font-bold hover:bg-primary/5">
+                                Emergency
+                            </button>
+<button class="px-4 py-2 rounded-full border border-dashed border-primary/40 text-primary text-xs font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-xs">add</span> New Tag
+                            </button>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- Fixed Footer -->
+<footer class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-background-light dark:from-background-dark via-background-light dark:via-background-dark to-transparent pt-10">
+<div class="max-w-md mx-auto space-y-3">
+<div class="flex items-center justify-center gap-2 text-[10px] text-slate-500 dark:text-slate-400">
+<span class="material-symbols-outlined text-sm">lock</span>
+                    All data is encrypted and stored locally on your device
+                </div>
+<button class="w-full h-14 bg-primary text-white font-bold rounded-xl shadow-lg shadow-primary/25 flex items-center justify-center gap-2 text-lg active:scale-[0.98] transition-transform">
+<span class="material-symbols-outlined">save</span>
+                    Save Prescription
+                </button>
+<div class="h-4"></div> <!-- iOS Home Indicator Padding -->
+</div>
+</footer>
+</div>
+</body></html>

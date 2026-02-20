@@ -1,19 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
-import {
-  Alert,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  View,
-} from "react-native";
-import { useRouter } from "expo-router";
+import { useContext, useEffect, useMemo, useState } from 'react';
+import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { MaterialIcons } from '@expo/vector-icons';
+import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 
-import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
-import { listPatients } from "@/src/db/patients";
-import { getPrescriptionById } from "@/src/db/prescriptions";
-import type { Patient } from "@/src/db/types";
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { listPatients } from '@/src/db/patients';
+import { getPrescriptionById } from '@/src/db/prescriptions';
+import type { Patient } from '@/src/db/types';
 import {
   addPrescription,
   createAppBoundaries,
@@ -21,9 +16,9 @@ import {
   ensureDefaultPatient,
   parseTagInput,
   pickPrescriptionPhoto,
-} from "@/src/services";
+} from '@/src/services';
 
-export type PrescriptionFormMode = "add" | "edit";
+export type PrescriptionFormMode = 'add' | 'edit';
 
 type PrescriptionFormScreenProps = {
   mode: PrescriptionFormMode;
@@ -32,8 +27,8 @@ type PrescriptionFormScreenProps = {
 
 const formatDate = (date: Date): string => {
   const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 };
 
@@ -50,24 +45,30 @@ const buildDateOptions = (today: Date, daysBefore: number, daysAfter: number): s
 };
 
 export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFormScreenProps) {
-  const isEditMode = mode === "edit";
-  const title = mode === "edit" ? "Edit Prescription" : "Add Prescription";
+  const insets = useContext(SafeAreaInsetsContext) ?? {
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+  };
+  const isEditMode = mode === 'edit';
+  const title = mode === 'edit' ? 'Edit Prescription' : 'Add Prescription';
   const boundaries = useMemo(() => createAppBoundaries(), []);
   const router = useRouter();
 
   const [isLoading, setIsLoading] = useState(true);
   const [patients, setPatients] = useState<Patient[]>([]);
-  const [patientId, setPatientId] = useState("");
-  const [photoUri, setPhotoUri] = useState("");
-  const [doctorName, setDoctorName] = useState("");
-  const [doctorSpecialty, setDoctorSpecialty] = useState("");
-  const [condition, setCondition] = useState("");
-  const [tagsInput, setTagsInput] = useState("");
+  const [patientId, setPatientId] = useState('');
+  const [photoUri, setPhotoUri] = useState('');
+  const [doctorName, setDoctorName] = useState('');
+  const [doctorSpecialty, setDoctorSpecialty] = useState('');
+  const [condition, setCondition] = useState('');
+  const [tagsInput, setTagsInput] = useState('');
   const [visitDate, setVisitDate] = useState(formatDate(new Date()));
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [notes, setNotes] = useState("");
+  const [notes, setNotes] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState('');
   const [saving, setSaving] = useState(false);
 
   const parsedTags = useMemo(() => parseTagInput(tagsInput), [tagsInput]);
@@ -91,7 +92,7 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
         if (isEditMode && prescriptionId) {
           const existing = await getPrescriptionById(driver, prescriptionId);
           if (!existing) {
-            setMessage("Prescription not found.");
+            setMessage('Prescription not found.');
             return;
           }
 
@@ -102,18 +103,18 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
           setPatientId(existing.patientId);
           setPhotoUri(existing.photoUri);
           setDoctorName(existing.doctorName);
-          setDoctorSpecialty(existing.doctorSpecialty ?? "");
+          setDoctorSpecialty(existing.doctorSpecialty ?? '');
           setCondition(existing.condition);
-          setTagsInput(existing.tags.join(", "));
+          setTagsInput(existing.tags.join(', '));
           setVisitDate(existing.visitDate);
-          setNotes(existing.notes ?? "");
+          setNotes(existing.notes ?? '');
           return;
         }
 
         setPatientId((current) => current || defaultPatientId);
       } catch (error) {
         if (active) {
-          setMessage(error instanceof Error ? error.message : "Unable to load patients.");
+          setMessage(error instanceof Error ? error.message : 'Unable to load patients.');
         }
       } finally {
         if (active) {
@@ -129,20 +130,20 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
     };
   }, [boundaries, isEditMode, prescriptionId]);
 
-  const onPickPhoto = async (source: "camera" | "library") => {
-    setMessage("");
-    setErrors((current) => ({ ...current, photoUri: "" }));
+  const onPickPhoto = async (source: 'camera' | 'library') => {
+    setMessage('');
+    setErrors((current) => ({ ...current, photoUri: '' }));
 
     try {
       const selectedUri = await pickPrescriptionPhoto(boundaries, source);
       if (!selectedUri) {
-        setMessage("No photo was selected.");
+        setMessage('No photo was selected.');
         return;
       }
 
       setPhotoUri(selectedUri);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Unable to pick image.");
+      setMessage(error instanceof Error ? error.message : 'Unable to pick image.');
     }
   };
 
@@ -152,24 +153,12 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
     }
 
     if (isEditMode && !prescriptionId) {
-      setMessage("Prescription not found.");
+      setMessage('Prescription not found.');
       return;
     }
 
-    if (__DEV__) {
-      console.log("[PrescriptionForm] save:start", {
-        mode,
-        patientId,
-        hasPhotoUri: Boolean(photoUri.trim()),
-        doctorNameLength: doctorName.trim().length,
-        conditionLength: condition.trim().length,
-        tagsCount: parsedTags.length,
-        visitDate,
-      });
-    }
-
     setSaving(true);
-    setMessage("");
+    setMessage('');
     setErrors({});
 
     try {
@@ -192,9 +181,6 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
           : await addPrescription(boundaries, draft);
 
       if (!result.ok) {
-        if (__DEV__) {
-          console.log("[PrescriptionForm] save:validation-failed", result.errors);
-        }
         setErrors(result.errors);
         if (result.errors.prescriptionId) {
           setMessage(result.errors.prescriptionId);
@@ -204,26 +190,16 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
 
       setErrors({});
 
-      if (__DEV__) {
-        console.log("[PrescriptionForm] save:success", { id: result.prescription.id });
-      }
-
       Alert.alert(
-        isEditMode ? "Prescription Updated" : "Prescription Saved",
-        isEditMode ? "Prescription changes were saved successfully." : "Prescription was saved successfully."
+        isEditMode ? 'Prescription Updated' : 'Prescription Saved',
+        isEditMode ? 'Prescription changes were saved successfully.' : 'Prescription was saved successfully.'
       );
       router.replace({
-        pathname: "/prescription-detail",
+        pathname: '/prescription-detail',
         params: { id: result.prescription.id },
       });
     } catch (error) {
-      if (__DEV__) {
-        console.log("[PrescriptionForm] save:exception", {
-          message: error instanceof Error ? error.message : String(error),
-          stack: error instanceof Error ? error.stack : undefined,
-        });
-      }
-      setMessage(error instanceof Error ? error.message : "Unable to save prescription.");
+      setMessage(error instanceof Error ? error.message : 'Unable to save prescription.');
     } finally {
       setSaving(false);
     }
@@ -233,44 +209,58 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
     return (
       <ScrollView contentContainerStyle={styles.scrollContent} testID="prescription-form-screen">
         <ThemedView style={styles.container}>
-          <ThemedText type="default">Loading prescription...</ThemedText>
+          <ThemedText style={styles.helper}>Loading prescription...</ThemedText>
         </ThemedView>
       </ScrollView>
     );
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.scrollContent} testID="prescription-form-screen">
-      <ThemedView style={styles.container}>
-        <ThemedText type="title">{title}</ThemedText>
-        <ThemedText type="default">Capture visit details and attach a photo.</ThemedText>
-
-        {message ? (
-          <ThemedText type="defaultSemiBold" style={styles.message}>
-            {message}
+    <ThemedView style={styles.screen}>
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+        <View style={styles.headerLeft}>
+          <MaterialIcons name="arrow-back-ios-new" size={18} color="#E1EBF8" />
+          <ThemedText type="title" style={styles.headerTitle}>
+            {title}
           </ThemedText>
-        ) : null}
+        </View>
+        <ThemedText style={styles.cancelLabel}>Cancel</ThemedText>
+      </View>
 
-        <ThemedView style={styles.section} testID="prescription-form-photo">
-          <ThemedText type="subtitle">Photo</ThemedText>
-          <View style={styles.actionRow}>
-            <Pressable
-              style={styles.secondaryButton}
-              onPress={() => onPickPhoto("camera")}
-              testID="pick-photo-camera"
-            >
-              <ThemedText type="defaultSemiBold">Use Camera</ThemedText>
-            </Pressable>
-            <Pressable
-              style={styles.secondaryButton}
-              onPress={() => onPickPhoto("library")}
-              testID="pick-photo-library"
-            >
-              <ThemedText type="defaultSemiBold">Open Gallery</ThemedText>
-            </Pressable>
+      <ScrollView contentContainerStyle={styles.scrollContent} testID="prescription-form-screen" showsVerticalScrollIndicator={false}>
+        {message ? <ThemedText style={styles.message}>{message}</ThemedText> : null}
+
+        <ThemedView style={styles.photoSection} testID="prescription-form-photo">
+          <ThemedText style={styles.sectionLabel}>PRESCRIPTION PHOTO</ThemedText>
+          <View style={styles.photoUploadCard}>
+            <MaterialIcons name="add-a-photo" size={38} color="#137FEC" />
+            <ThemedText type="subtitle" style={styles.uploadTitle}>
+              Upload Prescription
+            </ThemedText>
+            <ThemedText style={styles.uploadSub}>Take a clear photo of the physical paper</ThemedText>
+            <View style={styles.photoActions}>
+              <Pressable
+                style={[styles.galleryButton, styles.photoButton]}
+                onPress={() => onPickPhoto('library')}
+                testID="pick-photo-library"
+              >
+                <MaterialIcons name="photo-library" size={16} color="#137FEC" />
+                <ThemedText style={styles.galleryText}>Gallery</ThemedText>
+              </Pressable>
+              <Pressable
+                style={[styles.cameraButton, styles.photoButton]}
+                onPress={() => onPickPhoto('camera')}
+                testID="pick-photo-camera"
+              >
+                <MaterialIcons name="photo-camera" size={16} color="#EAF4FF" />
+                <ThemedText style={styles.cameraText}>Camera</ThemedText>
+              </Pressable>
+            </View>
           </View>
+
           <TextInput
             placeholder="Photo URI"
+            placeholderTextColor="#738BAA"
             value={photoUri}
             onChangeText={setPhotoUri}
             autoCapitalize="none"
@@ -281,48 +271,26 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
         </ThemedView>
 
         <ThemedView style={styles.section} testID="prescription-form-fields">
-          <ThemedText type="subtitle">Details</ThemedText>
+          <ThemedText style={styles.sectionLabel}>MEDICAL DETAILS</ThemedText>
 
-          <ThemedText style={styles.label}>Patient</ThemedText>
-          <View style={styles.patientRow}>
-            {patients.map((patient) => {
-              const selected = patient.id === patientId;
-              return (
-                <Pressable
-                  key={patient.id}
-                  style={[styles.patientChip, selected ? styles.patientChipSelected : null]}
-                  onPress={() => setPatientId(patient.id)}
-                  testID={`patient-option-${patient.id}`}
-                >
-                  <ThemedText type="defaultSemiBold">{patient.name}</ThemedText>
-                </Pressable>
-              );
-            })}
+          <ThemedText style={styles.label}>Doctor Name *</ThemedText>
+          <View style={styles.inputIconWrap}>
+            <TextInput
+              placeholder="e.g. Dr. Rajesh Kumar"
+              placeholderTextColor="#738BAA"
+              value={doctorName}
+              onChangeText={setDoctorName}
+              style={[styles.input, styles.inputWithIcon]}
+              testID="prescription-doctor-input"
+            />
+            <MaterialIcons name="person" size={18} color="#92A8C2" style={styles.inputIcon} />
           </View>
-          {errors.patientId ? <ThemedText style={styles.error}>{errors.patientId}</ThemedText> : null}
-
-          <ThemedText style={styles.label}>Doctor Name</ThemedText>
-          <TextInput
-            placeholder="Dr. Lee"
-            value={doctorName}
-            onChangeText={setDoctorName}
-            style={styles.input}
-            testID="prescription-doctor-input"
-          />
           {errors.doctorName ? <ThemedText style={styles.error}>{errors.doctorName}</ThemedText> : null}
 
-          <ThemedText style={styles.label}>Specialty (optional)</ThemedText>
+          <ThemedText style={styles.label}>Condition *</ThemedText>
           <TextInput
-            placeholder="Cardiology"
-            value={doctorSpecialty}
-            onChangeText={setDoctorSpecialty}
-            style={styles.input}
-            testID="prescription-specialty-input"
-          />
-
-          <ThemedText style={styles.label}>Condition</ThemedText>
-          <TextInput
-            placeholder="Hypertension"
+            placeholder="e.g. Seasonal Allergy, Hypertension"
+            placeholderTextColor="#738BAA"
             value={condition}
             onChangeText={setCondition}
             style={styles.input}
@@ -330,62 +298,31 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
           />
           {errors.condition ? <ThemedText style={styles.error}>{errors.condition}</ThemedText> : null}
 
-          <ThemedText style={styles.label}>Tags (comma-separated)</ThemedText>
-          <TextInput
-            placeholder="bp, daily"
-            value={tagsInput}
-            onChangeText={setTagsInput}
-            style={styles.input}
-            testID="prescription-tags-input"
-          />
-          {parsedTags.length > 0 ? (
-            <View style={styles.tagRow} testID="prescription-tag-chips">
-              {parsedTags.map((tag) => (
-                <View key={tag.toLowerCase()} style={styles.tagChip}>
-                  <ThemedText type="defaultSemiBold">{tag}</ThemedText>
-                </View>
-              ))}
-            </View>
-          ) : null}
-          {errors.tags ? <ThemedText style={styles.error}>{errors.tags}</ThemedText> : null}
-
-          <ThemedText style={styles.label}>Visit Date</ThemedText>
-          <View style={styles.actionRow}>
-            <Pressable
-              style={styles.secondaryButton}
-              onPress={() => setVisitDate(formatDate(new Date()))}
-              testID="visit-date-today"
-            >
-              <ThemedText type="defaultSemiBold">Today</ThemedText>
+          <ThemedText style={styles.label}>Date of Visit</ThemedText>
+          <View style={styles.inputIconWrap}>
+            <Pressable onPress={() => setShowDatePicker((current) => !current)} testID="visit-date-open-picker">
+              <ThemedText style={[styles.input, styles.datePress]} testID="prescription-visit-date-value">
+                {visitDate}
+              </ThemedText>
             </Pressable>
-            <Pressable
-              style={styles.secondaryButton}
-              onPress={() => setShowDatePicker((current) => !current)}
-              testID="visit-date-open-picker"
-            >
-              <ThemedText type="defaultSemiBold">Pick Date</ThemedText>
+            <Pressable onPress={() => setVisitDate(formatDate(new Date()))} testID="visit-date-today" style={styles.inputIconAction}>
+              <MaterialIcons name="calendar-today" size={18} color="#92A8C2" />
             </Pressable>
           </View>
-          <ThemedText style={styles.dateValue} testID="prescription-visit-date-value">
-            {visitDate}
-          </ThemedText>
           {showDatePicker ? (
             <View style={styles.datePickerPanel} testID="prescription-visit-date-picker">
               <ScrollView style={styles.datePickerList} nestedScrollEnabled>
                 {dateOptions.map((dateOption) => (
                   <Pressable
                     key={dateOption}
-                    style={[
-                      styles.dateOption,
-                      dateOption === visitDate ? styles.dateOptionSelected : null,
-                    ]}
+                    style={[styles.dateOption, dateOption === visitDate ? styles.dateOptionSelected : null]}
                     onPress={() => {
                       setVisitDate(dateOption);
                       setShowDatePicker(false);
                     }}
                     testID={`visit-date-option-${dateOption}`}
                   >
-                    <ThemedText type="defaultSemiBold">{dateOption}</ThemedText>
+                    <ThemedText style={styles.dateOptionText}>{dateOption}</ThemedText>
                   </Pressable>
                 ))}
               </ScrollView>
@@ -393,144 +330,323 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
           ) : null}
           {errors.visitDate ? <ThemedText style={styles.error}>{errors.visitDate}</ThemedText> : null}
 
+          <ThemedText style={styles.label}>Specialty (optional)</ThemedText>
+          <TextInput
+            placeholder="Cardiology"
+            placeholderTextColor="#738BAA"
+            value={doctorSpecialty}
+            onChangeText={setDoctorSpecialty}
+            style={styles.input}
+            testID="prescription-specialty-input"
+          />
+
+          <ThemedText style={styles.label}>Tags & Family Member</ThemedText>
+          <TextInput
+            placeholder="self, dad, chronic"
+            placeholderTextColor="#738BAA"
+            value={tagsInput}
+            onChangeText={setTagsInput}
+            style={styles.input}
+            testID="prescription-tags-input"
+          />
+          <View style={styles.tagRow} testID="prescription-tag-chips">
+            {patients.map((patient) => {
+              const selected = patient.id === patientId;
+              return (
+                <Pressable
+                  key={patient.id}
+                  style={[styles.patientChip, selected && styles.patientChipSelected]}
+                  onPress={() => setPatientId(patient.id)}
+                  testID={`patient-option-${patient.id}`}
+                >
+                  <ThemedText style={[styles.patientChipText, selected && styles.patientChipTextSelected]}>{patient.name}</ThemedText>
+                </Pressable>
+              );
+            })}
+            {parsedTags.map((tag) => (
+              <View key={tag.toLowerCase()} style={styles.tagChip}>
+                <ThemedText style={styles.tagText}>{tag}</ThemedText>
+              </View>
+            ))}
+          </View>
+          {errors.tags ? <ThemedText style={styles.error}>{errors.tags}</ThemedText> : null}
+
           <ThemedText style={styles.label}>Notes</ThemedText>
           <TextInput
             placeholder="Optional notes"
+            placeholderTextColor="#738BAA"
             value={notes}
             onChangeText={setNotes}
             style={[styles.input, styles.notesInput]}
             multiline
             testID="prescription-notes-input"
           />
-
-          <Pressable
-            style={[styles.primaryButton, saving ? styles.primaryButtonDisabled : null]}
-            onPress={onSave}
-            disabled={saving || isLoading}
-            testID="prescription-save-button"
-          >
-            <ThemedText type="defaultSemiBold">
-              {saving ? "Saving..." : mode === "edit" ? "Save Changes" : "Save Prescription"}
-            </ThemedText>
-          </Pressable>
         </ThemedView>
-      </ThemedView>
-    </ScrollView>
+      </ScrollView>
+
+      <View style={styles.footer}>
+        <ThemedText style={styles.footerNote}>All data is encrypted and stored locally on your device</ThemedText>
+        <Pressable
+          style={[styles.saveButton, (saving || isLoading) && styles.saveButtonDisabled]}
+          onPress={onSave}
+          disabled={saving || isLoading}
+          testID="prescription-save-button"
+        >
+          <MaterialIcons name="save" size={20} color="#EEF6FF" />
+          <ThemedText type="defaultSemiBold" style={styles.saveButtonLabel}>
+            {saving ? 'Saving...' : mode === 'edit' ? 'Save Changes' : 'Save Prescription'}
+          </ThemedText>
+        </Pressable>
+      </View>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollContent: {
-    paddingBottom: 32,
+  screen: {
+    flex: 1,
+    backgroundColor: '#101922',
   },
-  dateValue: {
+  header: {
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1E2D44',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  headerTitle: {
+    color: '#EAF2FB',
+    fontSize: 33 / 1.5,
+    lineHeight: 38 / 1.5,
+  },
+  cancelLabel: {
+    color: '#137FEC',
+    fontWeight: '700',
+  },
+  scrollContent: {
+    paddingHorizontal: 14,
+    paddingBottom: 160,
+    paddingTop: 10,
+    gap: 10,
+    backgroundColor: '#101922',
+  },
+  container: {
+    paddingTop: 16,
+    backgroundColor: '#101922',
+  },
+  helper: {
+    color: '#93A8C4',
+  },
+  message: {
+    color: '#FFC781',
+  },
+  photoSection: {
+    gap: 8,
+    backgroundColor: 'transparent',
+  },
+  section: {
+    gap: 8,
+    backgroundColor: 'transparent',
+  },
+  sectionLabel: {
+    color: '#137FEC',
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    marginTop: 6,
+  },
+  photoUploadCard: {
     borderWidth: 1,
-    borderColor: "#94a3b8",
+    borderStyle: 'dashed',
+    borderColor: '#1A4E8D',
+    borderRadius: 12,
+    backgroundColor: '#0E1E33',
+    padding: 18,
+    alignItems: 'center',
+    gap: 6,
+  },
+  uploadTitle: {
+    color: '#E5EFFB',
+    fontSize: 36 / 1.5,
+    lineHeight: 40 / 1.5,
+  },
+  uploadSub: {
+    color: '#94A8C2',
+    textAlign: 'center',
+  },
+  photoActions: {
+    flexDirection: 'row',
+    width: '100%',
+    gap: 8,
+    marginTop: 8,
+  },
+  photoButton: {
+    flex: 1,
+    height: 46,
     borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    backgroundColor: "#f8fafc",
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+  },
+  galleryButton: {
+    backgroundColor: '#132D4C',
+  },
+  cameraButton: {
+    backgroundColor: '#137FEC',
+  },
+  galleryText: {
+    color: '#137FEC',
+    fontWeight: '700',
+  },
+  cameraText: {
+    color: '#EAF4FF',
+    fontWeight: '700',
+  },
+  label: {
+    color: '#DCE8F8',
+    fontSize: 17 / 1.5,
+    lineHeight: 22 / 1.5,
+    fontWeight: '700',
+    marginTop: 4,
+  },
+  input: {
+    minHeight: 50,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#244061',
+    paddingHorizontal: 14,
+    color: '#EAF3FF',
+    backgroundColor: '#1A2638',
+    fontSize: 16,
+    lineHeight: 20,
+  },
+  inputWithIcon: {
+    paddingRight: 40,
+  },
+  inputIconWrap: {
+    position: 'relative',
+  },
+  inputIcon: {
+    position: 'absolute',
+    right: 12,
+    top: 15,
+  },
+  inputIconAction: {
+    position: 'absolute',
+    right: 12,
+    top: 15,
+  },
+  datePress: {
+    textAlignVertical: 'center',
+    paddingTop: 14,
   },
   datePickerPanel: {
     borderWidth: 1,
-    borderColor: "#cbd5e1",
-    borderRadius: 8,
+    borderColor: '#284565',
+    borderRadius: 10,
     maxHeight: 220,
-    backgroundColor: "#ffffff",
+    backgroundColor: '#121F30',
   },
   datePickerList: {
     padding: 8,
   },
   dateOption: {
-    paddingHorizontal: 10,
     paddingVertical: 8,
-    borderRadius: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
   },
   dateOptionSelected: {
-    backgroundColor: "#dbeafe",
+    backgroundColor: '#18406B',
   },
-  container: {
-    padding: 24,
-    gap: 12,
+  dateOptionText: {
+    color: '#D8E7F8',
   },
-  section: {
-    marginTop: 8,
-    gap: 8,
-  },
-  message: {
-    color: "#b45309",
-  },
-  label: {
-    marginTop: 8,
-    fontWeight: "600",
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#94a3b8",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 16,
-    backgroundColor: "#ffffff",
-  },
-  notesInput: {
-    minHeight: 96,
-    textAlignVertical: "top",
-  },
-  error: {
-    color: "#dc2626",
-  },
-  actionRow: {
-    flexDirection: "row",
-    gap: 8,
-    flexWrap: "wrap",
-  },
-  secondaryButton: {
-    borderWidth: 1,
-    borderColor: "#64748b",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    backgroundColor: "#f8fafc",
-  },
-  primaryButton: {
-    marginTop: 12,
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: "#dbeafe",
-    borderWidth: 1,
-    borderColor: "#93c5fd",
-    alignItems: "center",
-  },
-  primaryButtonDisabled: {
-    opacity: 0.6,
-  },
-  patientRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
+  tagRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
   },
   patientChip: {
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: "#94a3b8",
+    borderColor: '#325275',
     paddingHorizontal: 12,
     paddingVertical: 6,
+    backgroundColor: '#162438',
   },
   patientChipSelected: {
-    backgroundColor: "#bfdbfe",
-    borderColor: "#60a5fa",
+    borderColor: '#137FEC',
+    backgroundColor: 'rgba(19,127,236,0.18)',
   },
-  tagRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
+  patientChipText: {
+    color: '#A8BED8',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  patientChipTextSelected: {
+    color: '#4AB0FF',
   },
   tagChip: {
     borderRadius: 999,
+    backgroundColor: '#273447',
     paddingHorizontal: 10,
-    paddingVertical: 4,
-    backgroundColor: "#e2e8f0",
+    paddingVertical: 6,
+  },
+  tagText: {
+    color: '#B8CBE1',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  notesInput: {
+    minHeight: 90,
+    textAlignVertical: 'top',
+    paddingTop: 12,
+  },
+  error: {
+    color: '#F3A8AE',
+  },
+  footer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 14,
+    paddingTop: 14,
+    paddingBottom: 18,
+    backgroundColor: '#101922',
+    borderTopWidth: 1,
+    borderTopColor: '#1E2D44',
+    gap: 8,
+  },
+  footerNote: {
+    color: '#607693',
+    fontSize: 11,
+    textAlign: 'center',
+  },
+  saveButton: {
+    height: 48,
+    borderRadius: 10,
+    backgroundColor: '#137FEC',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+  },
+  saveButtonLabel: {
+    color: '#EEF6FF',
+    fontSize: 18 / 1.5,
+    lineHeight: 22 / 1.5,
+  },
+  saveButtonDisabled: {
+    opacity: 0.6,
   },
 });
