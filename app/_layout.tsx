@@ -19,7 +19,6 @@ export default function RootLayout() {
         <Stack.Screen name="add-edit-patient" options={{ headerShown: false }} />
         <Stack.Screen name="add-edit-prescription" options={{ headerShown: false }} />
         <Stack.Screen name="prescription-detail" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>
