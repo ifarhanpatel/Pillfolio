@@ -24,7 +24,7 @@ const defaultClockBoundary: ClockBoundary = {
   nowIso: () => new Date().toISOString(),
 };
 
-export const resolveImagePickerMediaTypes = (): readonly ["images"] => ["images"];
+export const resolveImagePickerMediaTypes = (): ImagePicker.MediaType[] => ["images"];
 
 const resolveBaseDirectory = (fileSystem: Record<string, unknown>): string | null => {
   const directDocument = fileSystem.documentDirectory;

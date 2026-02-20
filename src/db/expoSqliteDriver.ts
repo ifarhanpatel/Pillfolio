@@ -111,22 +111,22 @@ export const createExpoSqliteDriver = async (
         }
         logSqlite("runAsync:done");
       },
-      getAllAsync: async (sql, params) => {
+      getAllAsync: async <T>(sql: string, params?: SqlParams) => {
         const safeParams = normalizeParams(params);
         logSqlite("getAllAsync:start", { sql: previewSql(sql), paramsCount: safeParams.length });
-        const rows = await db.getAllAsync(sql, safeParams);
+        const rows = await db.getAllAsync<unknown>(sql, safeParams);
         logSqlite("getAllAsync:done", { rows: rows.length });
-        return rows;
+        return rows as T[];
       },
-      getFirstAsync: async (sql, params) => {
+      getFirstAsync: async <T>(sql: string, params?: SqlParams) => {
         const safeParams = normalizeParams(params);
         logSqlite("getFirstAsync:start", {
           sql: previewSql(sql),
           paramsCount: safeParams.length,
         });
-        const row = await db.getFirstAsync(sql, safeParams);
+        const row = await db.getFirstAsync<unknown>(sql, safeParams);
         logSqlite("getFirstAsync:done", { found: row !== null });
-        return row;
+        return (row as T) ?? null;
       },
     };
   }
