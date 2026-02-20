@@ -50,7 +50,9 @@ describe("migrations", () => {
 
     expect(appliedStatements).toHaveLength(0);
     expect(driver.executed).toContain(MIGRATIONS[1].up[0]);
-    expect(driver.migrations).toHaveLength(2);
+    expect(driver.executed).toContain(MIGRATIONS[2].up[0]);
+    expect(driver.migrations).toHaveLength(3);
     expect(driver.migrations[1].id).toBe(MIGRATIONS[1].id);
+    expect(driver.migrations[2].id).toBe(MIGRATIONS[2].id);
   });
 });

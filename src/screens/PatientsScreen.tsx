@@ -182,7 +182,7 @@ export function PatientsScreen() {
 
         {!isLoading ? (
           <View style={styles.list} testID="patients-list">
-            {patients.map((patient, index) => (
+            {patients.map((patient) => (
               <ThemedView
                 key={patient.id}
                 style={styles.card}
@@ -206,7 +206,7 @@ export function PatientsScreen() {
                         <ThemedText type="subtitle" style={styles.cardName}>
                           {patient.name}
                         </ThemedText>
-                        {index === 0 ? (
+                        {patient.isPrimary ? (
                           <View style={styles.primaryPill}>
                             <ThemedText style={styles.primaryPillText}>PRIMARY</ThemedText>
                           </View>

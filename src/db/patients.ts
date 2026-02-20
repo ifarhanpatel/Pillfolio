@@ -7,13 +7,23 @@ import type {
 } from "./types";
 import { createId } from "../utils/id";
 
-const mapPatientRow = (row: Patient): Patient => ({
-  ...row,
+type PatientRow = Omit<Patient, "isPrimary"> & {
+  isPrimary: boolean | number | null;
+};
+
+const mapPatientRow = (row: PatientRow): Patient => ({
+  id: row.id,
+  name: row.name,
   relationship: row.relationship ?? null,
   gender: row.gender ?? null,
+  isPrimary: Boolean(row.isPrimary),
+  createdAt: row.createdAt,
+  updatedAt: row.updatedAt,
 });
 
-const mapPatientListRow = (row: PatientListItem): PatientListItem => ({
+const mapPatientListRow = (
+  row: Omit<PatientListItem, "isPrimary"> & { isPrimary: boolean | number | null }
+): PatientListItem => ({
   ...mapPatientRow(row),
   prescriptionsCount: Number(row.prescriptionsCount ?? 0),
 });
@@ -35,10 +45,15 @@ export const createPatient = async (
   const timestamp = now();
   const relationship = input.relationship ?? null;
   const gender = input.gender ?? null;
+  const isPrimary = input.isPrimary ? 1 : 0;
+
+  if (isPrimary) {
+    await driver.runAsync("UPDATE patients SET isPrimary = 0 WHERE isPrimary = 1;");
+  }
 
   await driver.runAsync(
-    "INSERT INTO patients (id, name, relationship, gender, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?);",
-    [id, input.name.trim(), relationship, gender, timestamp, timestamp]
+    "INSERT INTO patients (id, name, relationship, gender, isPrimary, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?);",
+    [id, input.name.trim(), relationship, gender, isPrimary, timestamp, timestamp]
   );
 
   return requirePatient(await getPatientById(driver, id), "insert");
@@ -48,7 +63,7 @@ export const getPatientById = async (
   driver: SqlDriver,
   id: string
 ): Promise<Patient | null> => {
-  const row = await driver.getFirstAsync<Patient>(
+  const row = await driver.getFirstAsync<PatientRow>(
     "SELECT * FROM patients WHERE id = ?;",
     [id]
   );
@@ -59,12 +74,12 @@ export const getPatientById = async (
 export const listPatients = async (
   driver: SqlDriver
 ): Promise<PatientListItem[]> => {
-  const rows = await driver.getAllAsync<PatientListItem>(
+  const rows = await driver.getAllAsync<PatientListItem & { isPrimary: boolean | number | null }>(
     `SELECT patients.*, COALESCE(COUNT(prescriptions.id), 0) AS prescriptionsCount
      FROM patients
      LEFT JOIN prescriptions ON prescriptions.patientId = patients.id
      GROUP BY patients.id
-     ORDER BY patients.createdAt DESC;`
+     ORDER BY patients.isPrimary DESC, patients.createdAt DESC;`
   );
 
   return rows.map(mapPatientListRow);
@@ -87,14 +102,23 @@ export const updatePatient = async (
     "relationship"
   );
   const hasGender = Object.prototype.hasOwnProperty.call(input, "gender");
+  const hasIsPrimary = Object.prototype.hasOwnProperty.call(input, "isPrimary");
   const relationship = hasRelationship
     ? input.relationship ?? null
     : existing.relationship;
   const gender = hasGender ? input.gender ?? null : existing.gender;
+  const isPrimary = hasIsPrimary ? Boolean(input.isPrimary) : existing.isPrimary;
+
+  if (isPrimary) {
+    await driver.runAsync(
+      "UPDATE patients SET isPrimary = 0 WHERE id != ? AND isPrimary = 1;",
+      [id]
+    );
+  }
 
   await driver.runAsync(
-    "UPDATE patients SET name = ?, relationship = ?, gender = ?, updatedAt = ? WHERE id = ?;",
-    [input.name.trim(), relationship, gender, timestamp, id]
+    "UPDATE patients SET name = ?, relationship = ?, gender = ?, isPrimary = ?, updatedAt = ? WHERE id = ?;",
+    [input.name.trim(), relationship, gender, isPrimary ? 1 : 0, timestamp, id]
   );
 
   return requirePatient(await getPatientById(driver, id), "update");

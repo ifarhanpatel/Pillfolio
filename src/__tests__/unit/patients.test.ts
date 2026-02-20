@@ -23,6 +23,7 @@ describe("patients", () => {
     expect(patient.name).toBe("Alex");
     expect(patient.relationship).toBe("Self");
     expect(patient.gender).toBe("female");
+    expect(patient.isPrimary).toBe(false);
     expect(patient.createdAt).toBe(now());
     expect(driver.patients).toHaveLength(1);
     expect(await getPatientById(driver, patient.id)).toEqual(patient);
@@ -37,6 +38,17 @@ describe("patients", () => {
 
     expect(patients[0].name).toBe("Newer");
     expect(patients[1].name).toBe("Older");
+  });
+
+  test("listPatients places primary patients first", async () => {
+    const driver = new FakeDriver();
+    await createPatient(driver, { name: "Older" }, () => "2025-01-01T00:00:00.000Z");
+    await createPatient(driver, { name: "Newer", isPrimary: true }, () => "2025-02-01T00:00:00.000Z");
+
+    const patients = await listPatients(driver);
+
+    expect(patients[0].name).toBe("Newer");
+    expect(patients[0].isPrimary).toBe(true);
   });
 
   test("listPatients includes prescriptionsCount per patient", async () => {
@@ -113,7 +125,28 @@ describe("patients", () => {
 
     expect(updated?.relationship).toBe("Self");
     expect(updated?.gender).toBe("female");
+    expect(updated?.isPrimary).toBe(false);
     expect(await getPatientById(driver, created.id)).toEqual(updated);
+  });
+
+  test("createPatient marks one primary patient at a time", async () => {
+    const driver = new FakeDriver();
+    const first = await createPatient(driver, { name: "Alex", isPrimary: true });
+    const second = await createPatient(driver, { name: "Taylor", isPrimary: true });
+
+    expect((await getPatientById(driver, first.id))?.isPrimary).toBe(false);
+    expect((await getPatientById(driver, second.id))?.isPrimary).toBe(true);
+  });
+
+  test("updatePatient can promote a different primary patient", async () => {
+    const driver = new FakeDriver();
+    const first = await createPatient(driver, { name: "Alex", isPrimary: true });
+    const second = await createPatient(driver, { name: "Taylor" });
+
+    await updatePatient(driver, second.id, { name: "Taylor", isPrimary: true });
+
+    expect((await getPatientById(driver, first.id))?.isPrimary).toBe(false);
+    expect((await getPatientById(driver, second.id))?.isPrimary).toBe(true);
   });
 
   test("deletePatient removes patient", async () => {

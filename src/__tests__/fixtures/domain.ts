@@ -15,6 +15,7 @@ export const patientFixture = (
   name: "Alex Doe",
   relationship: "Self",
   gender: "female",
+  isPrimary: false,
   createdAt: FIXED_DATES.createdAt,
   updatedAt: FIXED_DATES.updatedAt,
   ...overrides,

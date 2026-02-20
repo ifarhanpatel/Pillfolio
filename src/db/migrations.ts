@@ -18,4 +18,8 @@ export const MIGRATIONS: Migration[] = [
     id: "002_add_patient_gender",
     up: ["ALTER TABLE patients ADD COLUMN gender TEXT;"],
   },
+  {
+    id: "003_add_patient_is_primary",
+    up: ["ALTER TABLE patients ADD COLUMN isPrimary INTEGER NOT NULL DEFAULT 0;"],
+  },
 ];

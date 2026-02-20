@@ -54,7 +54,7 @@ const defaultLoadTimelineData = async (input: {
   await initializeDb(driver);
 
   const patients = await listPatients(driver);
-  const selectedPatient = patients[0] ?? null;
+  const selectedPatient = patients.find((patient) => patient.isPrimary) ?? patients[0] ?? null;
 
   if (!selectedPatient) {
     return {

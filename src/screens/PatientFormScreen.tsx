@@ -1,6 +1,7 @@
 import { useContext, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, TextInput } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
+import { MaterialIcons } from '@expo/vector-icons';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -27,6 +28,7 @@ export function PatientFormScreen({ mode, patientId }: PatientFormScreenProps) {
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState('');
   const [relationship, setRelationship] = useState('');
+  const [isPrimary, setIsPrimary] = useState(false);
   const [nameError, setNameError] = useState<string | null>(null);
 
   const isEditMode = mode === 'edit';
@@ -51,6 +53,7 @@ export function PatientFormScreen({ mode, patientId }: PatientFormScreenProps) {
 
         setName(patient.name);
         setRelationship(patient.relationship ?? '');
+        setIsPrimary(patient.isPrimary);
       } catch {
         Alert.alert('Failed to load patient');
       } finally {
@@ -77,6 +80,7 @@ export function PatientFormScreen({ mode, patientId }: PatientFormScreenProps) {
       const payload = {
         name,
         relationship: relationship.trim() ? relationship.trim() : null,
+        isPrimary,
       };
 
       if (isEditMode && patientId) {
@@ -139,6 +143,16 @@ export function PatientFormScreen({ mode, patientId }: PatientFormScreenProps) {
           />
         </ThemedView>
         <Pressable
+          onPress={() => setIsPrimary((current) => !current)}
+          style={({ pressed }) => [styles.primaryToggle, pressed && styles.buttonPressed]}
+          testID="patient-form-primary-checkbox"
+        >
+          <View style={[styles.checkbox, isPrimary && styles.checkboxSelected]}>
+            {isPrimary ? <MaterialIcons name="check" size={16} color="#EAF3FF" /> : null}
+          </View>
+          <ThemedText style={styles.primaryToggleLabel}>Set as primary user</ThemedText>
+        </Pressable>
+        <Pressable
           onPress={() => void savePatient()}
           style={({ pressed }) => [
             styles.primaryButton,
@@ -197,6 +211,30 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: '#FFB4B8',
+  },
+  primaryToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 4,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#2C4D71',
+    backgroundColor: '#0B1A2C',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxSelected: {
+    borderColor: '#137FEC',
+    backgroundColor: '#137FEC',
+  },
+  primaryToggleLabel: {
+    color: '#D5E7FA',
+    fontSize: 15,
   },
   primaryButton: {
     borderRadius: 12,

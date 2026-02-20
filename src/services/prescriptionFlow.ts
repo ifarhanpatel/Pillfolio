@@ -132,6 +132,7 @@ export const ensureDefaultPatient = async (boundaries: AppBoundaries): Promise<s
   const patient = await createPatient(driver, {
     name: DEFAULT_PATIENT_NAME,
     relationship: "Self",
+    isPrimary: true,
   });
 
   return patient.id;

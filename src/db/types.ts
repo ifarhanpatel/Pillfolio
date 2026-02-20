@@ -3,6 +3,7 @@ export type Patient = {
   name: string;
   relationship: string | null;
   gender: string | null;
+  isPrimary: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -29,12 +30,14 @@ export type NewPatientInput = {
   name: string;
   relationship?: string | null;
   gender?: string | null;
+  isPrimary?: boolean;
 };
 
 export type UpdatePatientInput = {
   name: string;
   relationship?: string | null;
   gender?: string | null;
+  isPrimary?: boolean;
 };
 
 export type NewPrescriptionInput = {

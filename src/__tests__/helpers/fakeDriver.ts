@@ -19,25 +19,40 @@ export class FakeDriver implements SqlDriver {
     this.executed.push(sql);
 
     if (sql.startsWith("INSERT INTO patients")) {
-      const [id, name, relationship, gender, createdAt, updatedAt] = params;
+      const [id, name, relationship, gender, isPrimary, createdAt, updatedAt] = params;
       this.patients.push({
         id: asString(id),
         name: asString(name),
         relationship: (relationship as string | null) ?? null,
         gender: (gender as string | null) ?? null,
+        isPrimary: Boolean(isPrimary),
         createdAt: asString(createdAt),
         updatedAt: asString(updatedAt),
       });
       return;
     }
 
+    if (sql === "UPDATE patients SET isPrimary = 0 WHERE isPrimary = 1;") {
+      this.patients = this.patients.map((patient) => ({ ...patient, isPrimary: false }));
+      return;
+    }
+
+    if (sql === "UPDATE patients SET isPrimary = 0 WHERE id != ? AND isPrimary = 1;") {
+      const [id] = params;
+      this.patients = this.patients.map((patient) =>
+        patient.id === id ? patient : { ...patient, isPrimary: false }
+      );
+      return;
+    }
+
     if (sql.startsWith("UPDATE patients")) {
-      const [name, relationship, gender, updatedAt, id] = params;
+      const [name, relationship, gender, isPrimary, updatedAt, id] = params;
       const patient = this.patients.find((row) => row.id === id);
       if (patient) {
         patient.name = asString(name);
         patient.relationship = (relationship as string | null) ?? null;
         patient.gender = (gender as string | null) ?? null;
+        patient.isPrimary = Boolean(isPrimary);
         patient.updatedAt = asString(updatedAt);
       }
       return;
