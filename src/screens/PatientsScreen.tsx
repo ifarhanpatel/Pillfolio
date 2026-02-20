@@ -152,9 +152,6 @@ export function PatientsScreen() {
               Managed locally · Private
             </ThemedText>
           </View>
-          <Pressable style={styles.iconCircle}>
-            <MaterialIcons name="settings" size={20} color="#B6C5DB" />
-          </Pressable>
         </View>
 
         <View style={styles.searchBar}>
@@ -364,14 +361,6 @@ const styles = StyleSheet.create({
     fontSize: 18 / 1.5,
     lineHeight: 26 / 1.5,
     marginTop: 2,
-  },
-  iconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#1C2839',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   searchBar: {
     height: 46,

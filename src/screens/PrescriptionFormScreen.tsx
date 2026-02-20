@@ -73,6 +73,15 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
 
   const parsedTags = useMemo(() => parseTagInput(tagsInput), [tagsInput]);
   const dateOptions = useMemo(() => buildDateOptions(new Date(), 30, 30), []);
+  const navigateBack = () => {
+    const canGoBack = (router as { canGoBack?: () => boolean }).canGoBack?.() ?? false;
+    if (canGoBack) {
+      router.back();
+      return;
+    }
+
+    router.replace('/(tabs)');
+  };
 
   useEffect(() => {
     let active = true;
@@ -218,13 +227,15 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
   return (
     <ThemedView style={styles.screen}>
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <View style={styles.headerLeft}>
+        <Pressable style={styles.headerLeft} onPress={navigateBack} hitSlop={10} testID="prescription-form-back">
           <MaterialIcons name="arrow-back-ios-new" size={18} color="#E1EBF8" />
           <ThemedText type="title" style={styles.headerTitle}>
             {title}
           </ThemedText>
-        </View>
-        <ThemedText style={styles.cancelLabel}>Cancel</ThemedText>
+        </Pressable>
+        <Pressable onPress={navigateBack} hitSlop={10} testID="prescription-form-cancel">
+          <ThemedText style={styles.cancelLabel}>Cancel</ThemedText>
+        </Pressable>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} testID="prescription-form-screen" showsVerticalScrollIndicator={false}>
