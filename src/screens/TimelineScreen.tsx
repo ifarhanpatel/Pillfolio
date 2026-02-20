@@ -207,15 +207,11 @@ export function TimelineScreen({
   return (
     <ThemedView style={[styles.container, { paddingTop: insets.top + 8 }]} testID="timeline-screen">
       <View style={styles.headerRow}>
-        <View style={styles.backIconStub}>
-          <MaterialIcons name="arrow-back-ios-new" size={16} color="#2491FF" />
-        </View>
         <View style={styles.headTextWrap}>
           <ThemedText style={styles.headerTitle}>Timeline</ThemedText>
           <ThemedText style={styles.headerSub}>8 Records • Locally Stored</ThemedText>
           <ThemedText style={styles.headerSubSecondary}>{patientSubtitle}</ThemedText>
         </View>
-        <MaterialIcons name="more-vert" size={20} color="#A8B8CF" />
       </View>
 
       <View style={styles.searchContainer} testID="timeline-search-panel">
@@ -289,18 +285,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    alignItems: 'flex-start',
     marginBottom: 10,
   },
-  backIconStub: {
-    width: 22,
-    alignItems: 'flex-start',
-  },
   headTextWrap: {
-    flex: 1,
-    marginLeft: 8,
+    width: '100%',
   },
   headerTitle: {
     color: '#E4EDF9',
