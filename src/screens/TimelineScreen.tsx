@@ -158,6 +158,11 @@ export function TimelineScreen({
     return 'Select a patient to view prescriptions.';
   }, [patient, searchAllPatients]);
 
+  const recordsSubtitle = useMemo(() => {
+    const label = prescriptions.length === 1 ? 'Record' : 'Records';
+    return `${prescriptions.length} ${label} Shown • Locally Stored`;
+  }, [prescriptions.length]);
+
   const refreshTimeline = async () => {
     setIsRefreshing(true);
     try {
@@ -209,7 +214,7 @@ export function TimelineScreen({
       <View style={styles.headerRow}>
         <View style={styles.headTextWrap}>
           <ThemedText style={styles.headerTitle}>Timeline</ThemedText>
-          <ThemedText style={styles.headerSub}>8 Records • Locally Stored</ThemedText>
+          <ThemedText style={styles.headerSub}>{recordsSubtitle}</ThemedText>
           <ThemedText style={styles.headerSubSecondary}>{patientSubtitle}</ThemedText>
         </View>
       </View>
