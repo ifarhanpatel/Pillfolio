@@ -16,7 +16,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { initializeDb, openDb } from '@/src/db';
 import { deletePatientWithStrategy, listPatients } from '@/src/db/patients';
-import type { Patient } from '@/src/db/types';
+import type { Patient, PatientListItem } from '@/src/db/types';
 
 const toPatientTestKey = (name: string): string =>
   name
@@ -32,7 +32,7 @@ export function PatientsScreen() {
     bottom: 0,
     left: 0,
   };
-  const [patients, setPatients] = useState<Patient[]>([]);
+  const [patients, setPatients] = useState<PatientListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -217,8 +217,8 @@ export function PatientsScreen() {
                       </ThemedText>
                       <ThemedText style={styles.cardMeta}>
                         <MaterialIcons name="description" size={12} color="#137FEC" />{' '}
-                        {(patient as unknown as { prescriptionsCount?: number }).prescriptionsCount ?? 0}{' '}
-                        Prescriptions
+                        {patient.prescriptionsCount}{' '}
+                        {patient.prescriptionsCount === 1 ? 'Prescription' : 'Prescriptions'}
                       </ThemedText>
                     </View>
                   </Pressable>

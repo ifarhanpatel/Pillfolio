@@ -39,6 +39,34 @@ describe("patients", () => {
     expect(patients[1].name).toBe("Older");
   });
 
+  test("listPatients includes prescriptionsCount per patient", async () => {
+    const driver = new FakeDriver();
+    const alex = await createPatient(driver, { name: "Alex" }, () => "2025-01-01T00:00:00.000Z");
+    const taylor = await createPatient(driver, { name: "Taylor" }, () => "2025-02-01T00:00:00.000Z");
+
+    await createPrescription(driver, {
+      patientId: taylor.id,
+      photoUri: "file:///rx-1.jpg",
+      doctorName: "Dr. Lee",
+      condition: "Cold",
+      tags: ["morning"],
+      visitDate: "2025-01-01",
+    });
+    await createPrescription(driver, {
+      patientId: taylor.id,
+      photoUri: "file:///rx-2.jpg",
+      doctorName: "Dr. Lee",
+      condition: "Flu",
+      tags: ["night"],
+      visitDate: "2025-01-02",
+    });
+
+    const patients = await listPatients(driver);
+
+    expect(patients.find((patient) => patient.id === taylor.id)?.prescriptionsCount).toBe(2);
+    expect(patients.find((patient) => patient.id === alex.id)?.prescriptionsCount).toBe(0);
+  });
+
   test("getPatientById returns null for missing", async () => {
     const driver = new FakeDriver();
 

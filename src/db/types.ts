@@ -7,6 +7,10 @@ export type Patient = {
   updatedAt: string;
 };
 
+export type PatientListItem = Patient & {
+  prescriptionsCount: number;
+};
+
 export type Prescription = {
   id: string;
   patientId: string;

@@ -164,6 +164,17 @@ export class FakeDriver implements SqlDriver {
         .map((row) => ({ ...row })) as T[];
     }
 
+    if (sql.includes("FROM patients") && sql.includes("prescriptionsCount")) {
+      return [...this.patients]
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+        .map((row) => ({
+          ...row,
+          prescriptionsCount: this.prescriptions.filter(
+            (prescription) => prescription.patientId === row.id
+          ).length,
+        })) as T[];
+    }
+
     if (sql.startsWith("SELECT * FROM prescriptions")) {
       const isPatientScoped = sql.includes("WHERE patientId = ?");
       const hasSearchQuery = sql.includes("LOWER(doctorName) LIKE");

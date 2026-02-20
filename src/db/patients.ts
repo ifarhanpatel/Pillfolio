@@ -1,11 +1,21 @@
 import type { SqlDriver } from "./driver";
-import type { NewPatientInput, Patient, UpdatePatientInput } from "./types";
+import type {
+  NewPatientInput,
+  Patient,
+  PatientListItem,
+  UpdatePatientInput,
+} from "./types";
 import { createId } from "../utils/id";
 
 const mapPatientRow = (row: Patient): Patient => ({
   ...row,
   relationship: row.relationship ?? null,
   gender: row.gender ?? null,
+});
+
+const mapPatientListRow = (row: PatientListItem): PatientListItem => ({
+  ...mapPatientRow(row),
+  prescriptionsCount: Number(row.prescriptionsCount ?? 0),
 });
 
 const requirePatient = (patient: Patient | null, action: string): Patient => {
@@ -46,12 +56,18 @@ export const getPatientById = async (
   return row ? mapPatientRow(row) : null;
 };
 
-export const listPatients = async (driver: SqlDriver): Promise<Patient[]> => {
-  const rows = await driver.getAllAsync<Patient>(
-    "SELECT * FROM patients ORDER BY createdAt DESC;"
+export const listPatients = async (
+  driver: SqlDriver
+): Promise<PatientListItem[]> => {
+  const rows = await driver.getAllAsync<PatientListItem>(
+    `SELECT patients.*, COALESCE(COUNT(prescriptions.id), 0) AS prescriptionsCount
+     FROM patients
+     LEFT JOIN prescriptions ON prescriptions.patientId = patients.id
+     GROUP BY patients.id
+     ORDER BY patients.createdAt DESC;`
   );
 
-  return rows.map(mapPatientRow);
+  return rows.map(mapPatientListRow);
 };
 
 export const updatePatient = async (
