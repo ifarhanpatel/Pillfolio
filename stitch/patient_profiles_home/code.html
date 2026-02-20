@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Patient Profiles Home</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101922",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen flex flex-col">
+<!-- Header Section -->
+<header class="sticky top-0 z-10 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md px-6 pt-12 pb-4">
+<div class="flex items-center justify-between max-w-md mx-auto">
+<div class="flex flex-col">
+<h1 class="text-3xl font-bold tracking-tight">Family Profiles</h1>
+<p class="text-slate-500 dark:text-slate-400 text-sm mt-1">Managed locally · Private</p>
+</div>
+<button class="flex items-center justify-center size-10 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</div>
+</header>
+<!-- Content Area -->
+<main class="flex-1 px-6 py-4 max-w-md mx-auto w-full space-y-4 pb-24">
+<!-- Search/Filter Bar -->
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary">search</span>
+<input class="w-full bg-slate-100 dark:bg-slate-900 border-none rounded-xl py-3 pl-11 pr-4 focus:ring-2 focus:ring-primary text-sm transition-all duration-200" placeholder="Search profiles..." type="text"/>
+</div>
+<!-- Profile Cards List -->
+<div class="grid grid-cols-1 gap-4">
+<!-- Card: Self -->
+<div class="group relative flex items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 hover:border-primary/50 transition-colors">
+<div class="size-14 rounded-full bg-primary/10 flex items-center justify-center text-primary overflow-hidden">
+<div class="w-full h-full bg-cover bg-center" data-alt="Portrait of the primary account user" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBFwOYOE028QFhiazwyEpfCndgEAiT779vxsOK9o_bgRAlVM_jvUyxJXiqH0Iiuci7iRdC5DCK_xq7OE8mr_YoPFqthYMBU6LYquZXVDG9kwO5JowtoiZxHDIqgX3rPgPu4EqSYEYSmLSmox4MnhXYiNiukJFToNBiuSVeqfayLy2Qqk18UuHpVD4bBE7kzK-dxZQwMJnCBIcQ8SEE7KgqjAelTq0EbeonZS9A3XhPK9rkwqpOEvDV2gvlP38AkJuF58cp90OWjZmU3')"></div>
+</div>
+<div class="flex-1">
+<div class="flex items-center gap-2">
+<h3 class="font-bold text-lg">Self</h3>
+<span class="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider">Primary</span>
+</div>
+<p class="text-slate-500 dark:text-slate-400 text-sm">You</p>
+<div class="mt-2 flex items-center gap-1 text-primary text-xs font-semibold">
+<span class="material-symbols-outlined text-sm">description</span>
+                        14 Prescriptions
+                    </div>
+</div>
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-700">chevron_right</span>
+</div>
+<!-- Card: Mother -->
+<div class="group relative flex items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 hover:border-primary/50 transition-colors">
+<div class="size-14 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 overflow-hidden">
+<div class="w-full h-full bg-cover bg-center" data-alt="Portrait of an elderly woman profile" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBt9YmMCVJ1fPt4HGhKc325zibzrJZSchcSR_iSCVX-pJ8U4wPW1uVZC6mSVFd01l8Pmk1VhsZlrJfFXpZaJv9s_4l_MV--llcVEEDNogYWF70fp3nqP6EFnK7jOA_UNUgCLS_hPnEp-jPqP0ZoCLdNIuAYlX_u1NrJJsS0ZHPiRlBfkP6Ve_Xu2o65fYT9jkRF94VUZ9aRdlZ0bk-PIsEPCLrhH3m2h6PoTwBWQQQpZEu4L3mNgMOWaAXOuqGIzAS5Q2PtgjusSgmO')"></div>
+</div>
+<div class="flex-1">
+<h3 class="font-bold text-lg">Mother</h3>
+<p class="text-slate-500 dark:text-slate-400 text-sm">Parent</p>
+<div class="mt-2 flex items-center gap-1 text-slate-500 dark:text-slate-400 text-xs font-semibold">
+<span class="material-symbols-outlined text-sm">description</span>
+                        8 Prescriptions
+                    </div>
+</div>
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-700">chevron_right</span>
+</div>
+<!-- Card: Rahul -->
+<div class="group relative flex items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 hover:border-primary/50 transition-colors">
+<div class="size-14 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 overflow-hidden">
+<div class="w-full h-full bg-cover bg-center" data-alt="Portrait of a young male profile" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBubKqvH2qh9t9r13BDIEGQGRyd8ui5vX4uctUzpe7Z_-JjLhHGNou_hPodDY4K3-HyQtvjklti9iAobtz-sEnEgwi3e4BqxL-nzM7APhKZQlpJNdY4I2smWHcySGeXpugSrif-xODDcaXfwLk3w6Vk7UkSdOYsdQHCDlBdNZxv6ibtaE3Z81sxyOJ44w2r9m1-Wkyz_Od1Im8HopiCbWUu7tj7AAEGec8XbnIuH7jkABjqV55akzwFy0LhSDp3Xb8JQ4PWt8L1SzBv')"></div>
+</div>
+<div class="flex-1">
+<h3 class="font-bold text-lg">Rahul</h3>
+<p class="text-slate-500 dark:text-slate-400 text-sm">Son</p>
+<div class="mt-2 flex items-center gap-1 text-slate-500 dark:text-slate-400 text-xs font-semibold">
+<span class="material-symbols-outlined text-sm">description</span>
+                        3 Prescriptions
+                    </div>
+</div>
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-700">chevron_right</span>
+</div>
+<!-- Card: Grandfather -->
+<div class="group relative flex items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 hover:border-primary/50 transition-colors opacity-80">
+<div class="size-14 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 overflow-hidden">
+<div class="w-full h-full bg-cover bg-center" data-alt="Portrait of an elderly man profile" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuC8DBCL-cqYom2FcS6r528QzXzZnTUyos0QU8-VrU6fuw3a4Pw0Lxn9d4pQ5snoLkzov2_yx81dPAU7o0Y2vzVoKaIvhml7VHZwST4JCLJNKWVMx53L3ebj6KvlNHwaXU62XOvOwPY3-H9aC-SfXa3cmz79jMm6JDViCiKvS6QhESsQpUIKXrER3VwJJ80eHTjFj9w6OC_uexpTjiEfib4mzifSPFIU_26ZeLBTMDOJf69gwQbrbv8uDqTdu1MCDjDuveLhKl0DK_JI')"></div>
+</div>
+<div class="flex-1">
+<h3 class="font-bold text-lg">Grandpa</h3>
+<p class="text-slate-500 dark:text-slate-400 text-sm">Grandparent</p>
+<div class="mt-2 flex items-center gap-1 text-slate-500 dark:text-slate-400 text-xs font-semibold">
+<span class="material-symbols-outlined text-sm">description</span>
+                        21 Prescriptions
+                    </div>
+</div>
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-700">chevron_right</span>
+</div>
+</div>
+<!-- Privacy Assurance -->
+<div class="flex items-center justify-center gap-2 pt-8 opacity-50">
+<span class="material-symbols-outlined text-base">verified_user</span>
+<p class="text-xs font-medium">End-to-end local encryption active</p>
+</div>
+</main>
+<!-- Floating Action Button -->
+<div class="fixed bottom-24 right-6 max-w-md mx-auto w-full pointer-events-none">
+<div class="flex justify-end pr-6">
+<button class="pointer-events-auto bg-primary text-white size-14 rounded-full shadow-lg shadow-primary/40 flex items-center justify-center active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-3xl">add</span>
+</button>
+</div>
+</div>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 w-full bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 px-6 pb-6 pt-3">
+<div class="flex items-center justify-between max-w-md mx-auto">
+<a class="flex flex-col items-center gap-1 text-primary" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">group</span>
+<span class="text-[10px] font-bold">Profiles</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 dark:text-slate-500" href="#">
+<span class="material-symbols-outlined">history</span>
+<span class="text-[10px] font-bold">Recent</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 dark:text-slate-500" href="#">
+<span class="material-symbols-outlined">folder_open</span>
+<span class="text-[10px] font-bold">Folders</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 dark:text-slate-500" href="#">
+<span class="material-symbols-outlined">notifications</span>
+<span class="text-[10px] font-bold">Alerts</span>
+</a>
+</div>
+</nav>
+</body></html>

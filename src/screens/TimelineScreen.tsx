@@ -1,12 +1,14 @@
-import { useEffect, useMemo, useState } from 'react';
-import { FlatList, Image, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { useContext, useEffect, useMemo, useState } from 'react';
+import { Image, Pressable, RefreshControl, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
+import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { initializeDb, openDb } from '@/src/db';
 import { listPatients } from '@/src/db/patients';
 import { searchPrescriptions } from '@/src/db/prescriptions';
 import type { Patient, Prescription } from '@/src/db/types';
-import { initializeDb, openDb } from '@/src/db';
 
 export type TimelineData = {
   patient: Patient | null;
@@ -76,12 +78,19 @@ export function TimelineScreen({
   loadData = defaultLoadTimelineData,
   onOpenPrescription,
 }: TimelineScreenProps) {
+  const insets = useContext(SafeAreaInsetsContext) ?? {
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+  };
   const [patient, setPatient] = useState<Patient | null>(null);
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
   const [query, setQuery] = useState('');
   const [searchAllPatients, setSearchAllPatients] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -123,18 +132,6 @@ export function TimelineScreen({
     };
   }, [loadData, query, searchAllPatients]);
 
-  const subtitle = useMemo(() => {
-    if (searchAllPatients) {
-      return 'Showing prescriptions from all patients.';
-    }
-
-    if (patient) {
-      return `${patient.name}'s prescriptions`;
-    }
-
-    return 'Select a patient to view prescriptions.';
-  }, [patient, searchAllPatients]);
-
   const emptyStateMessage = useMemo(() => {
     if (query.trim()) {
       return searchAllPatients
@@ -149,88 +146,137 @@ export function TimelineScreen({
     return 'No prescriptions found for this patient.';
   }, [query, searchAllPatients]);
 
-  const renderCard = ({ item }: { item: Prescription }) => {
+  const patientSubtitle = useMemo(() => {
+    if (searchAllPatients) {
+      return 'Showing prescriptions from all patients.';
+    }
+
+    if (patient) {
+      return `${patient.name}'s prescriptions`;
+    }
+
+    return 'Select a patient to view prescriptions.';
+  }, [patient, searchAllPatients]);
+
+  const refreshTimeline = async () => {
+    setIsRefreshing(true);
+    try {
+      const timelineData = await loadData({
+        query,
+        searchAllPatients,
+      });
+      setPatient(timelineData.patient);
+      setPrescriptions(sortPrescriptionsByVisitDateDesc(timelineData.prescriptions));
+      setErrorMessage(null);
+    } catch {
+      setErrorMessage('Unable to load timeline.');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const renderCard = ({ item, index }: { item: Prescription; index: number }) => {
     return (
-      <Pressable
-        onPress={() => onOpenPrescription?.(item.id)}
-        style={styles.card}
-        testID={`timeline-card-${item.id}`}>
-        <Image source={{ uri: item.photoUri }} style={styles.thumbnail} resizeMode="cover" />
-        <ThemedView style={styles.cardBody}>
-          <ThemedText
-            type="defaultSemiBold"
-            testID={`timeline-card-date-${item.id}`}>
-            {formatVisitDate(item.visitDate)}
-          </ThemedText>
-          <ThemedText type="default">{item.doctorName}</ThemedText>
-          <ThemedText type="default">{item.condition}</ThemedText>
-          <ThemedText type="default" numberOfLines={1}>
-            {item.tags.join(', ')}
-          </ThemedText>
-        </ThemedView>
-      </Pressable>
+      <View style={styles.timelineItemWrap}>
+        <View style={[styles.dot, index === 0 ? styles.dotActive : undefined]} />
+        <Pressable
+          onPress={() => onOpenPrescription?.(item.id)}
+          style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+          testID={`timeline-card-${item.id}`}
+        >
+          <View style={styles.cardBody}>
+            <ThemedText style={styles.cardMeta} testID={`timeline-card-date-${item.id}`}>
+              {formatVisitDate(item.visitDate)}
+            </ThemedText>
+            <ThemedText style={styles.cardDoctor}>{item.doctorName}</ThemedText>
+            <ThemedText style={styles.cardTitle}>{item.condition}</ThemedText>
+            <View style={styles.badgeRow}>
+              {item.tags.slice(0, 2).map((tag) => (
+                <View key={tag} style={styles.badge}>
+                  <ThemedText style={styles.badgeText}>{tag.toUpperCase()}</ThemedText>
+                </View>
+              ))}
+            </View>
+          </View>
+          <Image source={{ uri: item.photoUri }} style={styles.thumb} resizeMode="cover" />
+        </Pressable>
+      </View>
     );
   };
 
   return (
-    <ThemedView style={styles.container} testID="timeline-screen">
-      <ThemedText type="title">Timeline</ThemedText>
-      <ThemedText type="default">{subtitle}</ThemedText>
-      <ThemedView style={styles.searchContainer} testID="timeline-search-panel">
-        <ThemedText type="defaultSemiBold">Search</ThemedText>
+    <ThemedView style={[styles.container, { paddingTop: insets.top + 8 }]} testID="timeline-screen">
+      <View style={styles.headerRow}>
+        <View style={styles.backIconStub}>
+          <MaterialIcons name="arrow-back-ios-new" size={16} color="#2491FF" />
+        </View>
+        <View style={styles.headTextWrap}>
+          <ThemedText style={styles.headerTitle}>Timeline</ThemedText>
+          <ThemedText style={styles.headerSub}>8 Records • Locally Stored</ThemedText>
+          <ThemedText style={styles.headerSubSecondary}>{patientSubtitle}</ThemedText>
+        </View>
+        <MaterialIcons name="more-vert" size={20} color="#A8B8CF" />
+      </View>
+
+      <View style={styles.searchContainer} testID="timeline-search-panel">
+        <MaterialIcons name="search" size={18} color="#60779A" />
         <TextInput
-          placeholder="Doctor, condition, or tag"
+          placeholder="Search prescriptions (e.g. Fever, Dr. Mehta)"
+          placeholderTextColor="#60779A"
           autoCapitalize="none"
           value={query}
           onChangeText={setQuery}
           style={styles.searchInput}
           testID="timeline-search-input"
         />
-        <View style={styles.searchActions}>
-          <Pressable
-            style={[
-              styles.scopeToggleButton,
-              searchAllPatients ? styles.scopeToggleButtonActive : null,
-            ]}
-            onPress={() => setSearchAllPatients((current) => !current)}
-            testID="timeline-search-scope-toggle">
-            <ThemedText type="defaultSemiBold">
-              {searchAllPatients ? 'Searching all patients' : 'Searching selected patient'}
-            </ThemedText>
-          </Pressable>
-          {query.trim().length > 0 ? (
-            <Pressable
-              style={styles.clearButton}
-              onPress={() => setQuery('')}
-              testID="timeline-search-clear">
-              <ThemedText type="defaultSemiBold">Clear</ThemedText>
-            </Pressable>
-          ) : null}
-        </View>
-      </ThemedView>
-      {isLoading ? (
-        <ThemedText type="default">Loading timeline...</ThemedText>
-      ) : null}
-      {!isLoading && errorMessage ? <ThemedText type="default">{errorMessage}</ThemedText> : null}
+      </View>
+
+      <Pressable
+        style={[styles.scopeToggleButton, searchAllPatients && styles.scopeToggleButtonActive]}
+        onPress={() => setSearchAllPatients((current) => !current)}
+        testID="timeline-search-scope-toggle"
+      >
+        <ThemedText style={styles.scopeLabel}>
+          {searchAllPatients ? 'Searching all patients' : 'Searching selected patient'}
+        </ThemedText>
+      </Pressable>
+
+      <ThemedText style={styles.monthLabel}>AUGUST 2023</ThemedText>
+
+      {isLoading ? <ThemedText style={styles.helper}>Loading timeline...</ThemedText> : null}
+      {!isLoading && errorMessage ? <ThemedText style={styles.helper}>{errorMessage}</ThemedText> : null}
       {!isLoading && !errorMessage && patient && prescriptions.length === 0 ? (
-        <ThemedText type="default" testID="timeline-empty-state">
+        <ThemedText style={styles.helper} testID="timeline-empty-state">
           {emptyStateMessage}
         </ThemedText>
       ) : null}
       {!isLoading && !errorMessage && !patient ? (
-        <ThemedText type="default" testID="timeline-empty-state">
+        <ThemedText style={styles.helper} testID="timeline-empty-state">
           No patients available yet.
         </ThemedText>
       ) : null}
-      {!isLoading && prescriptions.length > 0 ? (
-        <FlatList
-          data={prescriptions}
-          keyExtractor={(item) => item.id}
-          renderItem={renderCard}
-          contentContainerStyle={styles.list}
-          testID="timeline-list"
-        />
-      ) : null}
+
+      <ScrollView
+        style={styles.timelineTrackWrap}
+        contentContainerStyle={styles.timelineScrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={() => void refreshTimeline()}
+            tintColor="#137FEC"
+          />
+        }
+      >
+        {prescriptions.length > 0 ? (
+          <View style={styles.list} testID="timeline-list">
+            <View style={styles.track} />
+            {prescriptions.map((item, index) => (
+              <View key={item.id}>{renderCard({ item, index })}</View>
+            ))}
+          </View>
+        ) : null}
+      </ScrollView>
     </ThemedView>
   );
 }
@@ -238,72 +284,187 @@ export function TimelineScreen({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 24,
-    gap: 12,
+    backgroundColor: '#101922',
+    paddingTop: 20,
+    paddingHorizontal: 16,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  backIconStub: {
+    width: 22,
+    alignItems: 'flex-start',
+  },
+  headTextWrap: {
+    flex: 1,
+    marginLeft: 8,
+  },
+  headerTitle: {
+    color: '#E4EDF9',
+    fontWeight: '800',
+    fontSize: 34 / 1.5,
+    lineHeight: 38 / 1.5,
+  },
+  headerSub: {
+    color: '#8A9EB9',
+    fontSize: 13,
+    lineHeight: 16,
+    marginTop: 2,
+  },
+  headerSubSecondary: {
+    color: '#6D82A1',
+    fontSize: 11,
+    lineHeight: 14,
+    marginTop: 2,
   },
   searchContainer: {
-    marginTop: 8,
-    gap: 4,
+    height: 46,
+    borderRadius: 12,
+    backgroundColor: '#182539',
     borderWidth: 1,
-    borderColor: '#C8CDD2',
-    borderRadius: 10,
+    borderColor: '#20344F',
     paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  searchInput: {
-    borderWidth: 1,
-    borderColor: '#C8CDD2',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-  },
-  searchActions: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginTop: 4,
+    marginBottom: 10,
+  },
+  searchInput: {
+    flex: 1,
+    color: '#CFDEF1',
+    fontSize: 14,
+    lineHeight: 18,
+    paddingVertical: 8,
   },
   scopeToggleButton: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#94A3B8',
-    borderRadius: 8,
-    paddingHorizontal: 10,
+    borderRadius: 10,
     paddingVertical: 8,
-    backgroundColor: '#F8FAFC',
+    paddingHorizontal: 10,
+    borderWidth: 1,
+    borderColor: '#27476D',
+    backgroundColor: '#132742',
+    marginBottom: 12,
+    alignSelf: 'flex-start',
   },
   scopeToggleButtonActive: {
-    borderColor: '#3B82F6',
-    backgroundColor: '#DBEAFE',
+    borderColor: '#137FEC',
+    backgroundColor: '#18406B',
   },
-  clearButton: {
-    borderWidth: 1,
-    borderColor: '#C8CDD2',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+  scopeLabel: {
+    color: '#BBD1EC',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  monthLabel: {
+    color: '#137FEC',
+    fontSize: 28 / 1.5,
+    lineHeight: 32 / 1.5,
+    fontWeight: '800',
+    marginBottom: 8,
+    marginLeft: 24,
+  },
+  helper: {
+    color: '#93A9C5',
+  },
+  timelineTrackWrap: {
+    flex: 1,
+  },
+  timelineScrollContent: {
+    paddingBottom: 120,
+  },
+  track: {
+    position: 'absolute',
+    left: 22,
+    top: 0,
+    bottom: 0,
+    width: 2,
+    backgroundColor: '#25344C',
   },
   list: {
-    gap: 12,
-    paddingTop: 8,
-    paddingBottom: 24,
+    gap: 14,
+    paddingBottom: 8,
+    position: 'relative',
+  },
+  timelineItemWrap: {
+    marginLeft: 14,
+    paddingLeft: 18,
+  },
+  dot: {
+    position: 'absolute',
+    left: 0,
+    top: 16,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#41556F',
+    borderWidth: 3,
+    borderColor: '#101922',
+    zIndex: 2,
+  },
+  dotActive: {
+    backgroundColor: '#137FEC',
   },
   card: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 12,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#D4D8DD',
-    borderRadius: 12,
-    padding: 10,
+    borderColor: '#1A3760',
+    backgroundColor: '#0E1931',
+    paddingHorizontal: 12,
+    paddingVertical: 11,
   },
-  thumbnail: {
-    width: 64,
-    height: 64,
-    borderRadius: 8,
-    backgroundColor: '#E8ECEF',
+  cardPressed: {
+    opacity: 0.9,
   },
   cardBody: {
     flex: 1,
-    gap: 2,
+    backgroundColor: 'transparent',
+  },
+  cardMeta: {
+    color: '#93A5C2',
+    fontSize: 14 / 1.5,
+    lineHeight: 18 / 1.5,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  cardTitle: {
+    color: '#E3ECF8',
+    fontSize: 36 / 1.5,
+    lineHeight: 40 / 1.5,
+    fontWeight: '800',
+    marginBottom: 5,
+  },
+  cardDoctor: {
+    color: '#D4E2F3',
+    fontSize: 16,
+    lineHeight: 19,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  badge: {
+    borderRadius: 6,
+    backgroundColor: '#1B2D4B',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+  },
+  badgeText: {
+    color: '#76AEEA',
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  thumb: {
+    width: 58,
+    height: 58,
+    borderRadius: 10,
+    backgroundColor: '#25364E',
   },
 });
