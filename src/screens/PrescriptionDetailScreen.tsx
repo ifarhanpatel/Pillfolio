@@ -7,12 +7,14 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { FullscreenImageViewer } from '@/src/components/FullscreenImageViewer';
 import { initializeDb, openDb } from '@/src/db';
+import { getPatientById } from '@/src/db/patients';
 import { getPrescriptionById } from '@/src/db/prescriptions';
 import type { Prescription } from '@/src/db/types';
 import { createAppBoundaries, deletePrescriptionWithCleanup } from '@/src/services';
 
 type PrescriptionPreview = {
   photoUri: string;
+  patientName?: string | null;
   doctorName: string;
   doctorSpecialty: string | null;
   condition: string;
@@ -24,6 +26,7 @@ type PrescriptionPreview = {
 type PrescriptionDetailScreenProps = {
   prescriptionId?: string;
   previewPrescription?: PrescriptionPreview;
+  onBack?: () => void;
   onEditPrescription?: (prescriptionId: string) => void;
   onDeletedPrescription?: () => void;
 };
@@ -58,6 +61,7 @@ const DetailItem = ({ icon, label, value }: { icon: keyof typeof MaterialIcons.g
 export function PrescriptionDetailScreen({
   prescriptionId,
   previewPrescription,
+  onBack,
   onEditPrescription,
   onDeletedPrescription,
 }: PrescriptionDetailScreenProps) {
@@ -69,6 +73,7 @@ export function PrescriptionDetailScreen({
   };
   const boundaries = useMemo(() => createAppBoundaries(), []);
   const [prescription, setPrescription] = useState<Prescription | null>(null);
+  const [patientName, setPatientName] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(Boolean(prescriptionId));
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isFullscreenVisible, setIsFullscreenVisible] = useState(false);
@@ -79,6 +84,7 @@ export function PrescriptionDetailScreen({
     const load = async () => {
       if (!prescriptionId) {
         setPrescription(null);
+        setPatientName(null);
         setIsLoading(false);
         return;
       }
@@ -98,16 +104,20 @@ export function PrescriptionDetailScreen({
         if (!loadedPrescription) {
           setErrorMessage('Prescription not found.');
           setPrescription(null);
+          setPatientName(null);
           return;
         }
 
+        const loadedPatient = await getPatientById(driver, loadedPrescription.patientId);
         setPrescription(loadedPrescription);
+        setPatientName(loadedPatient?.name ?? null);
       } catch {
         if (!mounted) {
           return;
         }
 
         setPrescription(null);
+        setPatientName(null);
         setErrorMessage('Unable to load prescription detail.');
       } finally {
         if (mounted) {
@@ -128,6 +138,7 @@ export function PrescriptionDetailScreen({
       return {
         id: prescription.id,
         photoUri: prescription.photoUri,
+        patientName,
         doctorName: prescription.doctorName,
         doctorSpecialty: prescription.doctorSpecialty,
         condition: prescription.condition,
@@ -140,12 +151,13 @@ export function PrescriptionDetailScreen({
     if (previewPrescription) {
       return {
         id: undefined,
+        patientName: previewPrescription.patientName ?? null,
         ...previewPrescription,
       };
     }
 
     return null;
-  }, [prescription, previewPrescription]);
+  }, [patientName, prescription, previewPrescription]);
 
   const handleDelete = () => {
     if (!prescriptionId) {
@@ -178,12 +190,11 @@ export function PrescriptionDetailScreen({
   return (
     <ThemedView style={styles.container} testID="prescription-detail-screen">
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <MaterialIcons name="arrow-back-ios-new" size={18} color="#D9E6F7" />
+        <Pressable onPress={onBack} hitSlop={10} testID="prescription-detail-back">
+          <MaterialIcons name="arrow-back-ios-new" size={18} color="#D9E6F7" />
+        </Pressable>
         <ThemedText style={styles.headerTitle}>Prescription Detail</ThemedText>
-        <View style={styles.headerActions}>
-          <MaterialIcons name="share" size={18} color="#137FEC" />
-          <MaterialIcons name="more-vert" size={18} color="#D9E6F7" />
-        </View>
+        <View style={styles.headerActionSpacer} />
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -199,10 +210,6 @@ export function PrescriptionDetailScreen({
                 <ThemedText style={styles.zoomText}>Tap to enlarge</ThemedText>
               </View>
             </Pressable>
-            <ThemedText style={styles.photoUri} testID="prescription-detail-photo-uri">
-              {resolvedData.photoUri}
-            </ThemedText>
-
             <View style={styles.recordHead}>
               <View>
                 <ThemedText type="subtitle" style={styles.recordTitle}>
@@ -226,6 +233,7 @@ export function PrescriptionDetailScreen({
             </View>
 
             <View style={styles.detailList}>
+              <DetailItem icon="groups" label="PATIENT" value={resolvedData.patientName ?? 'Unknown patient'} />
               <DetailItem icon="person" label="DOCTOR" value={resolvedData.doctorName} />
               <DetailItem icon="health-and-safety" label="SPECIALTY" value={resolvedData.doctorSpecialty ?? 'Not provided'} />
               <DetailItem icon="medical-information" label="CONDITION" value={resolvedData.condition} />
@@ -285,10 +293,9 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     lineHeight: 20,
   },
-  headerActions: {
-    flexDirection: 'row',
-    gap: 12,
-    alignItems: 'center',
+  headerActionSpacer: {
+    width: 18,
+    height: 18,
   },
   content: {
     paddingHorizontal: 12,
@@ -328,10 +335,6 @@ const styles = StyleSheet.create({
     color: '#E7EEF7',
     fontSize: 11,
     lineHeight: 13,
-  },
-  photoUri: {
-    color: '#607695',
-    fontSize: 12,
   },
   recordHead: {
     marginTop: 6,

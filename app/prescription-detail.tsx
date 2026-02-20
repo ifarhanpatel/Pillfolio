@@ -15,6 +15,7 @@ export default function PrescriptionDetailRoute() {
   const rawParams = useLocalSearchParams<{
     id?: string | string[];
     photoUri?: string | string[];
+    patientName?: string | string[];
     doctorName?: string | string[];
     doctorSpecialty?: string | string[];
     condition?: string | string[];
@@ -24,6 +25,7 @@ export default function PrescriptionDetailRoute() {
   }>();
   const id = firstParam(rawParams.id);
   const photoUri = firstParam(rawParams.photoUri);
+  const patientName = firstParam(rawParams.patientName);
   const doctorName = firstParam(rawParams.doctorName);
   const doctorSpecialty = firstParam(rawParams.doctorSpecialty);
   const condition = firstParam(rawParams.condition);
@@ -35,6 +37,7 @@ export default function PrescriptionDetailRoute() {
     !id && photoUri && doctorName && condition && visitDate
       ? {
           photoUri,
+          patientName: patientName ?? null,
           doctorName,
           doctorSpecialty: doctorSpecialty ?? null,
           condition,
@@ -48,6 +51,7 @@ export default function PrescriptionDetailRoute() {
     <PrescriptionDetailScreen
       prescriptionId={id}
       previewPrescription={previewPrescription}
+      onBack={() => router.back()}
       onEditPrescription={(prescriptionId) =>
         router.push({
           pathname: '/add-edit-prescription',
