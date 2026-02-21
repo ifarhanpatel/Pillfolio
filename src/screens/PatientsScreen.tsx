@@ -215,6 +215,9 @@ export function PatientsScreen() {
                       <ThemedText style={styles.cardRelation}>
                         {patient.relationship ? patient.relationship : 'You'}
                       </ThemedText>
+                      {patient.age !== null ? (
+                        <ThemedText style={styles.cardAge}>Age {patient.age}</ThemedText>
+                      ) : null}
                       <ThemedText style={styles.cardMeta}>
                         <MaterialIcons name="description" size={12} color="#137FEC" />{' '}
                         {patient.prescriptionsCount}{' '}
@@ -466,6 +469,10 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   cardRelation: {
+    color: '#99ACC6',
+    marginTop: 1,
+  },
+  cardAge: {
     color: '#99ACC6',
     marginTop: 1,
   },

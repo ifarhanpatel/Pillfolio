@@ -28,8 +28,10 @@ export function PatientFormScreen({ mode, patientId }: PatientFormScreenProps) {
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState('');
   const [relationship, setRelationship] = useState('');
+  const [age, setAge] = useState('');
   const [isPrimary, setIsPrimary] = useState(false);
   const [nameError, setNameError] = useState<string | null>(null);
+  const [ageError, setAgeError] = useState<string | null>(null);
 
   const isEditMode = mode === 'edit';
   const title = useMemo(() => (isEditMode ? 'Edit Patient' : 'Add Patient'), [isEditMode]);
@@ -53,6 +55,7 @@ export function PatientFormScreen({ mode, patientId }: PatientFormScreenProps) {
 
         setName(patient.name);
         setRelationship(patient.relationship ?? '');
+        setAge(patient.age !== null ? String(patient.age) : '');
         setIsPrimary(patient.isPrimary);
       } catch {
         Alert.alert('Failed to load patient');
@@ -65,13 +68,18 @@ export function PatientFormScreen({ mode, patientId }: PatientFormScreenProps) {
   }, [isEditMode, patientId]);
 
   const savePatient = async () => {
-    const validation = validatePatientInput({ name });
+    const trimmedAge = age.trim();
+    const parsedAge = trimmedAge.length === 0 ? null : Number(trimmedAge);
+    const normalizedAge = parsedAge !== null && Number.isNaN(parsedAge) ? -1 : parsedAge;
+    const validation = validatePatientInput({ name, age: normalizedAge });
     if (!validation.valid) {
       setNameError(validation.errors.name ?? 'Name is required.');
+      setAgeError(validation.errors.age ?? null);
       return;
     }
 
     setNameError(null);
+    setAgeError(null);
     setSaving(true);
 
     try {
@@ -80,6 +88,7 @@ export function PatientFormScreen({ mode, patientId }: PatientFormScreenProps) {
       const payload = {
         name,
         relationship: relationship.trim() ? relationship.trim() : null,
+        age: normalizedAge,
         isPrimary,
       };
 
@@ -141,6 +150,25 @@ export function PatientFormScreen({ mode, patientId }: PatientFormScreenProps) {
             style={styles.input}
             testID="patient-form-relationship-input"
           />
+        </ThemedView>
+        <ThemedView style={styles.field}>
+          <ThemedText type="defaultSemiBold" style={styles.label}>
+            Age
+          </ThemedText>
+          <TextInput
+            value={age}
+            onChangeText={setAge}
+            keyboardType="number-pad"
+            placeholder="Optional"
+            placeholderTextColor="#7C96B1"
+            style={styles.input}
+            testID="patient-form-age-input"
+          />
+          {ageError ? (
+            <ThemedText type="default" style={styles.errorText} testID="patient-form-age-error">
+              {ageError}
+            </ThemedText>
+          ) : null}
         </ThemedView>
         <Pressable
           onPress={() => setIsPrimary((current) => !current)}

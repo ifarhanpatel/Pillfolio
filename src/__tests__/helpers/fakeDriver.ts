@@ -19,12 +19,13 @@ export class FakeDriver implements SqlDriver {
     this.executed.push(sql);
 
     if (sql.startsWith("INSERT INTO patients")) {
-      const [id, name, relationship, gender, isPrimary, createdAt, updatedAt] = params;
+      const [id, name, relationship, gender, age, isPrimary, createdAt, updatedAt] = params;
       this.patients.push({
         id: asString(id),
         name: asString(name),
         relationship: (relationship as string | null) ?? null,
         gender: (gender as string | null) ?? null,
+        age: (age as number | null) ?? null,
         isPrimary: Boolean(isPrimary),
         createdAt: asString(createdAt),
         updatedAt: asString(updatedAt),
@@ -46,12 +47,13 @@ export class FakeDriver implements SqlDriver {
     }
 
     if (sql.startsWith("UPDATE patients")) {
-      const [name, relationship, gender, isPrimary, updatedAt, id] = params;
+      const [name, relationship, gender, age, isPrimary, updatedAt, id] = params;
       const patient = this.patients.find((row) => row.id === id);
       if (patient) {
         patient.name = asString(name);
         patient.relationship = (relationship as string | null) ?? null;
         patient.gender = (gender as string | null) ?? null;
+        patient.age = (age as number | null) ?? null;
         patient.isPrimary = Boolean(isPrimary);
         patient.updatedAt = asString(updatedAt);
       }
