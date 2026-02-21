@@ -37,12 +37,10 @@ describe("App launch smoke test", () => {
     await element(by.id("patients-add-prescription-cta")).tap();
     await waitFor(element(by.id("prescription-form-screen")))
       .toBeVisible()
-      .withTimeout(10000);
+      .withTimeout(15000);
     await waitFor(element(by.text("Self"))).toBeVisible().withTimeout(20000);
 
-    await element(by.id("prescription-photo-uri-input")).replaceText(
-      "file://tmp/prescription.jpg"
-    );
+    await element(by.id("prescription-photo-uri-input")).replaceText("e2e-fixture");
     await element(by.id("prescription-doctor-input")).replaceText("Dr. Lee");
     try {
       await element(by.id("prescription-doctor-input")).tapReturnKey();

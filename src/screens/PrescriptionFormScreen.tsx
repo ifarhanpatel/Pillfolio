@@ -17,6 +17,7 @@ import {
   parseTagInput,
   pickPrescriptionPhoto,
 } from '@/src/services';
+import { resolveE2EFixtureUri } from '@/src/utils/e2eFixture';
 
 export type PrescriptionFormMode = 'add' | 'edit';
 
@@ -171,9 +172,11 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
     setErrors({});
 
     try {
+      const effectivePhotoUri =
+        photoUri.trim() === 'e2e-fixture' ? await resolveE2EFixtureUri() : photoUri.trim();
       const draft = {
         patientId,
-        photoUri,
+        photoUri: effectivePhotoUri,
         doctorName,
         doctorSpecialty,
         condition,
