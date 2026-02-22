@@ -33,6 +33,7 @@ jest.mock('@/src/services', () => ({
             name: 'Default Patient',
             relationship: 'Self',
             gender: null,
+            age: 36,
             isPrimary: true,
             createdAt: '2025-01-01T00:00:00.000Z',
             updatedAt: '2025-01-01T00:00:00.000Z',

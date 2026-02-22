@@ -26,6 +26,8 @@ export const validatePatientInput = (input: NewPatientInput): ValidationResult =
   const name = input.name?.trim();
   const hasGender = Object.prototype.hasOwnProperty.call(input, "gender");
   const gender = input.gender?.trim();
+  const hasAge = Object.prototype.hasOwnProperty.call(input, "age");
+  const age = hasAge ? (input.age ?? null) : null;
 
   if (!name) {
     result = addError(result, "name", "Name is required.");
@@ -33,6 +35,12 @@ export const validatePatientInput = (input: NewPatientInput): ValidationResult =
 
   if (hasGender && !gender) {
     result = addError(result, "gender", "Gender cannot be empty.");
+  }
+
+  if (hasAge && age !== null) {
+    if (!Number.isInteger(age) || age < 0 || age > 120) {
+      result = addError(result, "age", "Age must be a whole number between 0 and 120.");
+    }
   }
 
   return result;

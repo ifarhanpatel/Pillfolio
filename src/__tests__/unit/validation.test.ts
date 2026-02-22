@@ -22,6 +22,20 @@ describe("validation", () => {
     expect(result.errors.gender).toBe("Gender cannot be empty.");
   });
 
+  test("validatePatientInput rejects invalid age", () => {
+    const result = validatePatientInput({ name: "Alex", age: 121 });
+
+    expect(result.valid).toBe(false);
+    expect(result.errors.age).toBe("Age must be a whole number between 0 and 120.");
+  });
+
+  test("validatePatientInput accepts valid age", () => {
+    const result = validatePatientInput({ name: "Alex", age: 45 });
+
+    expect(result.valid).toBe(true);
+    expect(result.errors).toEqual({});
+  });
+
   test("validatePrescriptionInput checks required fields", () => {
     const result = validatePrescriptionInput({
       doctorName: " ",

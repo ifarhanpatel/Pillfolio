@@ -16,6 +16,7 @@ const mapPatientRow = (row: PatientRow): Patient => ({
   name: row.name,
   relationship: row.relationship ?? null,
   gender: row.gender ?? null,
+  age: row.age ?? null,
   isPrimary: Boolean(row.isPrimary),
   createdAt: row.createdAt,
   updatedAt: row.updatedAt,
@@ -45,6 +46,7 @@ export const createPatient = async (
   const timestamp = now();
   const relationship = input.relationship ?? null;
   const gender = input.gender ?? null;
+  const age = input.age ?? null;
   const isPrimary = input.isPrimary ? 1 : 0;
 
   if (isPrimary) {
@@ -52,8 +54,8 @@ export const createPatient = async (
   }
 
   await driver.runAsync(
-    "INSERT INTO patients (id, name, relationship, gender, isPrimary, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?);",
-    [id, input.name.trim(), relationship, gender, isPrimary, timestamp, timestamp]
+    "INSERT INTO patients (id, name, relationship, gender, age, isPrimary, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?);",
+    [id, input.name.trim(), relationship, gender, age, isPrimary, timestamp, timestamp]
   );
 
   return requirePatient(await getPatientById(driver, id), "insert");
@@ -102,11 +104,13 @@ export const updatePatient = async (
     "relationship"
   );
   const hasGender = Object.prototype.hasOwnProperty.call(input, "gender");
+  const hasAge = Object.prototype.hasOwnProperty.call(input, "age");
   const hasIsPrimary = Object.prototype.hasOwnProperty.call(input, "isPrimary");
   const relationship = hasRelationship
     ? input.relationship ?? null
     : existing.relationship;
   const gender = hasGender ? input.gender ?? null : existing.gender;
+  const age = hasAge ? input.age ?? null : existing.age;
   const isPrimary = hasIsPrimary ? Boolean(input.isPrimary) : existing.isPrimary;
 
   if (isPrimary) {
@@ -117,8 +121,8 @@ export const updatePatient = async (
   }
 
   await driver.runAsync(
-    "UPDATE patients SET name = ?, relationship = ?, gender = ?, isPrimary = ?, updatedAt = ? WHERE id = ?;",
-    [input.name.trim(), relationship, gender, isPrimary ? 1 : 0, timestamp, id]
+    "UPDATE patients SET name = ?, relationship = ?, gender = ?, age = ?, isPrimary = ?, updatedAt = ? WHERE id = ?;",
+    [input.name.trim(), relationship, gender, age, isPrimary ? 1 : 0, timestamp, id]
   );
 
   return requirePatient(await getPatientById(driver, id), "update");

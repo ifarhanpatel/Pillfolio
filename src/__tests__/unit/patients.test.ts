@@ -16,13 +16,14 @@ describe("patients", () => {
 
     const patient = await createPatient(
       driver,
-      { name: "Alex", relationship: "Self", gender: "female" },
+      { name: "Alex", relationship: "Self", gender: "female", age: 31 },
       now
     );
 
     expect(patient.name).toBe("Alex");
     expect(patient.relationship).toBe("Self");
     expect(patient.gender).toBe("female");
+    expect(patient.age).toBe(31);
     expect(patient.isPrimary).toBe(false);
     expect(patient.createdAt).toBe(now());
     expect(driver.patients).toHaveLength(1);
@@ -87,7 +88,7 @@ describe("patients", () => {
     expect(patient).toBeNull();
   });
 
-  test("updatePatient updates name, relationship, and gender", async () => {
+  test("updatePatient updates name, relationship, gender, and age", async () => {
     const driver = new FakeDriver();
     const created = await createPatient(
       driver,
@@ -98,13 +99,14 @@ describe("patients", () => {
     const updated = await updatePatient(
       driver,
       created.id,
-      { name: "Alexis", relationship: "Parent", gender: "non-binary" },
+      { name: "Alexis", relationship: "Parent", gender: "non-binary", age: 52 },
       () => "2025-02-02T00:00:00.000Z"
     );
 
     expect(updated?.name).toBe("Alexis");
     expect(updated?.relationship).toBe("Parent");
     expect(updated?.gender).toBe("non-binary");
+    expect(updated?.age).toBe(52);
     expect(updated?.updatedAt).toBe("2025-02-02T00:00:00.000Z");
   });
 
@@ -112,7 +114,7 @@ describe("patients", () => {
     const driver = new FakeDriver();
     const created = await createPatient(
       driver,
-      { name: "Alex", relationship: "Self", gender: "female" },
+      { name: "Alex", relationship: "Self", gender: "female", age: 40 },
       () => "2025-01-01T00:00:00.000Z"
     );
 
@@ -125,6 +127,7 @@ describe("patients", () => {
 
     expect(updated?.relationship).toBe("Self");
     expect(updated?.gender).toBe("female");
+    expect(updated?.age).toBe(40);
     expect(updated?.isPrimary).toBe(false);
     expect(await getPatientById(driver, created.id)).toEqual(updated);
   });
