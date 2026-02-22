@@ -1,4 +1,5 @@
 const { execSync } = require("node:child_process");
+const detoxAndroidArch = process.arch === "x64" ? "x86_64" : "arm64-v8a";
 
 function pickIosSimulatorType() {
   if (process.env.DETOX_DEVICE_TYPE) {
@@ -26,7 +27,7 @@ function pickIosSimulatorType() {
         .split("\n")
         .map((line) => line.match(/^\s*(iPhone [^(]+)\s+\(/))
         .filter(Boolean)
-        .map((match) => match[1].trim()),
+        .map((match) => match[1].trim())
     );
 
     for (const deviceType of preferredDeviceTypes) {
@@ -61,27 +62,22 @@ module.exports = {
     },
     "ios.release": {
       type: "ios.app",
-      binaryPath:
-        "ios/build/Build/Products/Release-iphonesimulator/Pillfolio.app",
+      binaryPath: "ios/build/Build/Products/Release-iphonesimulator/Pillfolio.app",
       build:
         "xcodebuild -workspace ios/Pillfolio.xcworkspace -scheme Pillfolio -configuration Release -sdk iphonesimulator -derivedDataPath ios/build",
     },
     "android.debug": {
       type: "android.apk",
-      binaryPath:
-        "android/app/build/outputs/apk/debug/app-debug.apk",
-      testBinaryPath:
-        "android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk",
+      binaryPath: "android/app/build/outputs/apk/debug/app-debug.apk",
+      testBinaryPath: "android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk",
       build:
-        "cd android && ./gradlew :app:assembleDebug :app:assembleAndroidTest -DtestBuildType=debug -PreactNativeArchitectures=x86_64",
+        `cd android && ./gradlew :app:assembleDebug :app:assembleAndroidTest -DtestBuildType=debug -PreactNativeArchitectures=${detoxAndroidArch}`,
       reversePorts: [8081],
     },
     "android.release": {
       type: "android.apk",
-      binaryPath:
-        "android/app/build/outputs/apk/release/app-release.apk",
-      testBinaryPath:
-        "android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk",
+      binaryPath: "android/app/build/outputs/apk/release/app-release.apk",
+      testBinaryPath: "android/app/build/outputs/apk/androidTest/release/app-release-androidTest.apk",
       build:
         "cd android && ./gradlew :app:assembleRelease :app:assembleAndroidTest -DtestBuildType=release -PreactNativeArchitectures=x86_64",
       reversePorts: [8081],
