@@ -1,7 +1,8 @@
 import { useContext, useEffect, useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
+import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -33,16 +34,61 @@ const formatDate = (date: Date): string => {
   return `${year}-${month}-${day}`;
 };
 
-const buildDateOptions = (today: Date, daysBefore: number, daysAfter: number): string[] => {
-  const options: string[] = [];
+const VISIT_DATE_MIN = '2026-01-01';
+const VISIT_DATE_MIN_DATE = new Date(2026, 0, 1);
+const VISIT_DATE_ABSOLUTE_MAX = '2026-12-31';
+const VISIT_DATE_ABSOLUTE_MAX_DATE = new Date(2026, 11, 31);
 
-  for (let offset = -daysBefore; offset <= daysAfter; offset += 1) {
-    const value = new Date(today);
-    value.setDate(today.getDate() + offset);
-    options.push(formatDate(value));
+const getVisitDateMax = (): string => {
+  const today = formatDate(new Date());
+  if (today < VISIT_DATE_MIN) {
+    return VISIT_DATE_MIN;
   }
 
-  return options;
+  return today < VISIT_DATE_ABSOLUTE_MAX ? today : VISIT_DATE_ABSOLUTE_MAX;
+};
+
+const getVisitDateMaxDate = (): Date => {
+  const max = getVisitDateMax();
+  const parsed = parseVisitDate(max);
+  return parsed ?? VISIT_DATE_ABSOLUTE_MAX_DATE;
+};
+
+const isVisitDateInAllowedRange = (value: string): boolean => {
+  return value >= VISIT_DATE_MIN && value <= getVisitDateMax();
+};
+
+const getDefaultVisitDate = (): string => {
+  const today = formatDate(new Date());
+  return isVisitDateInAllowedRange(today) ? today : VISIT_DATE_MIN;
+};
+
+const parseVisitDate = (value: string): Date | null => {
+  const [year, month, day] = value.split('-').map(Number);
+  if (!year || !month || !day) {
+    return null;
+  }
+
+  const parsed = new Date(year, month - 1, day);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const getPickerDateValue = (value: string): Date => {
+  const parsed = parseVisitDate(value);
+  if (!parsed) {
+    return VISIT_DATE_MIN_DATE;
+  }
+
+  if (parsed < VISIT_DATE_MIN_DATE) {
+    return VISIT_DATE_MIN_DATE;
+  }
+
+  const maxDate = getVisitDateMaxDate();
+  if (parsed > maxDate) {
+    return maxDate;
+  }
+
+  return parsed;
 };
 
 export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFormScreenProps) {
@@ -65,7 +111,7 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
   const [doctorSpecialty, setDoctorSpecialty] = useState('');
   const [condition, setCondition] = useState('');
   const [tagsInput, setTagsInput] = useState('');
-  const [visitDate, setVisitDate] = useState(formatDate(new Date()));
+  const [visitDate, setVisitDate] = useState(getDefaultVisitDate());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [notes, setNotes] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -73,7 +119,6 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
   const [saving, setSaving] = useState(false);
 
   const parsedTags = useMemo(() => parseTagInput(tagsInput), [tagsInput]);
-  const dateOptions = useMemo(() => buildDateOptions(new Date(), 30, 30), []);
   const navigateBack = () => {
     const canGoBack = (router as { canGoBack?: () => boolean }).canGoBack?.() ?? false;
     if (canGoBack) {
@@ -217,6 +262,19 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
     }
   };
 
+  const onNativeDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
+    if (Platform.OS === 'android') {
+      setShowDatePicker(false);
+    }
+
+    if (event.type === 'dismissed' || !selectedDate) {
+      return;
+    }
+
+    setVisitDate(formatDate(selectedDate));
+    setErrors((current) => ({ ...current, visitDate: '' }));
+  };
+
   if (isLoading) {
     return (
       <ScrollView contentContainerStyle={styles.scrollContent} testID="prescription-form-screen">
@@ -314,34 +372,55 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
 
           <ThemedText style={styles.label}>Date of Visit</ThemedText>
           <View style={styles.inputIconWrap}>
-            <Pressable onPress={() => setShowDatePicker((current) => !current)} testID="visit-date-open-picker">
-              <ThemedText style={[styles.input, styles.datePress]} testID="prescription-visit-date-value">
-                {visitDate}
-              </ThemedText>
-            </Pressable>
-            <Pressable onPress={() => setVisitDate(formatDate(new Date()))} testID="visit-date-today" style={styles.inputIconAction}>
+            {Platform.OS === 'web' ? (
+              <View style={styles.webDateInputFrame}>
+                <input
+                  type="date"
+                  value={visitDate}
+                  min={VISIT_DATE_MIN}
+                  max={getVisitDateMax()}
+                  onChange={(event) => setVisitDate(event.currentTarget.value)}
+                  data-testid="prescription-visit-date-value"
+                  aria-label="Date of Visit"
+                  style={webDateInputStyle}
+                />
+              </View>
+            ) : (
+              <Pressable onPress={() => setShowDatePicker((current) => !current)} testID="visit-date-open-picker">
+                <ThemedText style={[styles.input, styles.datePress]} testID="prescription-visit-date-value">
+                  {visitDate}
+                </ThemedText>
+              </Pressable>
+            )}
+            <Pressable
+              onPress={() => setVisitDate(getDefaultVisitDate())}
+              testID="visit-date-today"
+              style={styles.inputIconAction}
+            >
               <MaterialIcons name="calendar-today" size={18} color="#92A8C2" />
             </Pressable>
           </View>
-          {showDatePicker ? (
+          {Platform.OS !== 'web' && showDatePicker ? (
             <View style={styles.datePickerPanel} testID="prescription-visit-date-picker">
-              <ScrollView style={styles.datePickerList} nestedScrollEnabled>
-                {dateOptions.map((dateOption) => (
-                  <Pressable
-                    key={dateOption}
-                    style={[styles.dateOption, dateOption === visitDate ? styles.dateOptionSelected : null]}
-                    onPress={() => {
-                      setVisitDate(dateOption);
-                      setShowDatePicker(false);
-                    }}
-                    testID={`visit-date-option-${dateOption}`}
-                  >
-                    <ThemedText style={styles.dateOptionText}>{dateOption}</ThemedText>
-                  </Pressable>
-                ))}
-              </ScrollView>
+              <DateTimePicker
+                value={getPickerDateValue(visitDate)}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                minimumDate={VISIT_DATE_MIN_DATE}
+                maximumDate={getVisitDateMaxDate()}
+                onChange={onNativeDateChange}
+                {...(Platform.OS === 'ios'
+                  ? {
+                      themeVariant: 'dark' as const,
+                      accentColor: '#137FEC',
+                    }
+                  : {
+                      design: 'material' as const,
+                    })}
+              />
             </View>
           ) : null}
+          <ThemedText style={styles.helperInline}>Use the system calendar picker. Only 2026 dates up to today are allowed.</ThemedText>
           {errors.visitDate ? <ThemedText style={styles.error}>{errors.visitDate}</ThemedText> : null}
 
           <ThemedText style={styles.label}>Specialty (optional)</ThemedText>
@@ -459,6 +538,10 @@ const styles = StyleSheet.create({
   helper: {
     color: '#93A8C4',
   },
+  helperInline: {
+    color: '#93A8C4',
+    fontSize: 12,
+  },
   message: {
     color: '#FFC781',
   },
@@ -563,26 +646,22 @@ const styles = StyleSheet.create({
     textAlignVertical: 'center',
     paddingTop: 14,
   },
+  webDateInputFrame: {
+    minHeight: 50,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#244061',
+    backgroundColor: '#1A2638',
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+    paddingRight: 40,
+  },
   datePickerPanel: {
     borderWidth: 1,
     borderColor: '#284565',
     borderRadius: 10,
-    maxHeight: 220,
     backgroundColor: '#121F30',
-  },
-  datePickerList: {
-    padding: 8,
-  },
-  dateOption: {
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    borderRadius: 8,
-  },
-  dateOptionSelected: {
-    backgroundColor: '#18406B',
-  },
-  dateOptionText: {
-    color: '#D8E7F8',
+    overflow: 'hidden',
   },
   tagRow: {
     flexDirection: 'row',
@@ -664,3 +743,13 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
 });
+
+const webDateInputStyle = {
+  width: '100%',
+  minHeight: 48,
+  border: 'none',
+  outline: 'none',
+  backgroundColor: 'transparent',
+  color: '#EAF3FF',
+  fontSize: 16,
+} as const;

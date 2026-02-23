@@ -6,6 +6,14 @@ export type ValidationResult = {
 };
 
 const emptyResult = (): ValidationResult => ({ valid: true, errors: {} });
+const PRESCRIPTION_VISIT_DATE_MIN = "2026-01-01";
+const PRESCRIPTION_VISIT_DATE_MAX = "2026-12-31";
+const formatDateOnly = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
 
 const addError = (
   result: ValidationResult,
@@ -48,6 +56,7 @@ export const validatePrescriptionInput = (
   const doctorName = input.doctorName?.trim();
   const condition = input.condition?.trim();
   const patientId = input.patientId?.trim();
+  const visitDate = input.visitDate?.trim();
 
   if (!doctorName) {
     result = addError(result, "doctorName", "Doctor name is required.");
@@ -65,8 +74,12 @@ export const validatePrescriptionInput = (
     result = addError(result, "tags", "At least one tag is required.");
   }
 
-  if (!input.visitDate || Number.isNaN(Date.parse(input.visitDate))) {
+  if (!visitDate || Number.isNaN(Date.parse(visitDate))) {
     result = addError(result, "visitDate", "Visit date is required.");
+  } else if (visitDate < PRESCRIPTION_VISIT_DATE_MIN || visitDate > PRESCRIPTION_VISIT_DATE_MAX) {
+    result = addError(result, "visitDate", "Visit date must be within 2026.");
+  } else if (visitDate > formatDateOnly(new Date())) {
+    result = addError(result, "visitDate", "Visit date cannot be in the future.");
   }
 
   return result;

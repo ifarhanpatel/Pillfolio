@@ -29,6 +29,7 @@
     "plugins": [
       "expo-detox-config-plugin",
       "expo-router",
+      "./plugins/withAndroidMaterialDatePickerTheme",
       [
         "expo-image-picker",
         {
