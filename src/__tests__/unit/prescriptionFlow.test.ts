@@ -17,12 +17,21 @@ const createDraft = (overrides: Partial<AddPrescriptionDraft> = {}): AddPrescrip
   doctorSpecialty: "Cardiology",
   condition: "Hypertension",
   tags: ["bp"],
-  visitDate: "2025-02-01",
+  visitDate: "2026-02-01",
   notes: "Take after breakfast.",
   ...overrides,
 });
 
 describe("prescriptionFlow", () => {
+  beforeAll(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date("2026-02-23T12:00:00.000Z"));
+  });
+
+  afterAll(() => {
+    jest.useRealTimers();
+  });
+
   test("parseTagInput trims, removes blanks, and deduplicates tags", () => {
     expect(parseTagInput(" bp, daily, , BP, evening ")).toEqual([
       "bp",
@@ -164,7 +173,7 @@ describe("prescriptionFlow", () => {
       doctorSpecialty: "Cardiology",
       condition: "Controlled Hypertension",
       tags: ["bp", "night"],
-      visitDate: "2025-02-03",
+      visitDate: "2026-02-03",
       notes: "Updated note",
     });
 
@@ -208,7 +217,7 @@ describe("prescriptionFlow", () => {
       doctorSpecialty: "Cardiology",
       condition: "Hypertension",
       tags: ["bp"],
-      visitDate: "2025-02-01",
+      visitDate: "2026-02-01",
       notes: "Take after breakfast.",
     });
 
@@ -259,7 +268,7 @@ describe("prescriptionFlow", () => {
         doctorSpecialty: "Cardiology",
         condition: "Hypertension",
         tags: ["bp"],
-        visitDate: "2025-02-01",
+        visitDate: "2026-02-01",
         notes: "Updated notes",
       })
     ).rejects.toThrow("db update failed");
