@@ -3,8 +3,11 @@ import React from 'react';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { useTranslation } from '@/src/i18n/LocaleProvider';
 
 export default function TabLayout() {
+  const { t } = useTranslation();
+
   return (
     <Tabs
       screenOptions={{
@@ -29,7 +32,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Patients',
+          title: t('tabs.patients'),
           tabBarButtonTestID: 'tab-patients',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.2.fill" color={color} />,
         }}
@@ -37,7 +40,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="timeline"
         options={{
-          title: 'Timeline',
+          title: t('tabs.timeline'),
           tabBarButtonTestID: 'tab-timeline',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="clock.fill" color={color} />,
         }}
@@ -45,7 +48,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="settings"
         options={{
-          title: 'Settings',
+          title: t('tabs.settings'),
           tabBarButtonTestID: 'tab-settings',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="gearshape.fill" color={color} />,
         }}

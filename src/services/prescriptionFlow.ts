@@ -86,7 +86,7 @@ const validateDraft = (draft: AddPrescriptionDraft): AddPrescriptionFailure | nu
 
   const errors = { ...result.errors };
   if (!draft.photoUri.trim()) {
-    errors.photoUri = "Photo is required.";
+    errors.photoUri = "validation.photo_required";
   }
 
   if (Object.keys(errors).length > 0) {
@@ -218,7 +218,7 @@ export const editPrescription = async (
     return {
       ok: false,
       errors: {
-        prescriptionId: "Prescription not found.",
+        prescriptionId: "prescriptionForm.notFound",
       },
     };
   }
@@ -254,7 +254,7 @@ export const editPrescription = async (
       return {
         ok: false,
         errors: {
-          prescriptionId: "Prescription not found.",
+          prescriptionId: "prescriptionForm.notFound",
         },
       };
     }

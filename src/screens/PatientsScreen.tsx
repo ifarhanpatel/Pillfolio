@@ -17,6 +17,7 @@ import { ThemedView } from '@/components/themed-view';
 import { initializeDb, openDb } from '@/src/db';
 import { deletePatientWithStrategy, listPatients } from '@/src/db/patients';
 import type { Patient, PatientListItem } from '@/src/db/types';
+import { useTranslation } from '@/src/i18n/LocaleProvider';
 
 const toPatientTestKey = (name: string): string =>
   name
@@ -26,6 +27,7 @@ const toPatientTestKey = (name: string): string =>
     .replace(/^-+|-+$/g, '');
 
 export function PatientsScreen() {
+  const { t } = useTranslation();
   const insets = useContext(SafeAreaInsetsContext) ?? {
     top: 0,
     right: 0,
@@ -50,11 +52,11 @@ export function PatientsScreen() {
       setPatients(items);
     } catch {
       setPatients([]);
-      setErrorMessage('Unable to load patients.');
+      setErrorMessage(t('patients.loadError'));
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useFocusEffect(
     useCallback(() => {
@@ -142,28 +144,28 @@ export function PatientsScreen() {
           />
         }
       >
-        <ThemedText style={styles.srOnly}>Patients</ThemedText>
+        <ThemedText style={styles.srOnly}>{t('patients.srTitle')}</ThemedText>
         <View style={styles.headerRow}>
           <View>
             <ThemedText type="title" style={styles.title}>
-              Family Profiles
+              {t('patients.title')}
             </ThemedText>
             <ThemedText type="default" style={styles.subtitle}>
-              Managed locally · Private
+              {t('patients.subtitle')}
             </ThemedText>
           </View>
         </View>
 
         <View style={styles.searchBar}>
           <MaterialIcons name="search" size={18} color="#7086A8" />
-          <ThemedText style={styles.searchPlaceholder}>Search profiles...</ThemedText>
+          <ThemedText style={styles.searchPlaceholder}>{t('patients.searchPlaceholder')}</ThemedText>
         </View>
         <Pressable
           style={({ pressed }) => [styles.addPatientButton, pressed && styles.buttonPressed]}
           onPress={() => router.push('/add-edit-patient')}
           testID="patients-cta"
         >
-          <ThemedText style={styles.addPatientButtonText}>Add Patient</ThemedText>
+          <ThemedText style={styles.addPatientButtonText}>{t('patients.addPatient')}</ThemedText>
         </Pressable>
 
         {isLoading ? (
@@ -175,7 +177,7 @@ export function PatientsScreen() {
         {!isLoading && patients.length === 0 ? (
           <ThemedView style={styles.emptyState} testID="patients-empty-state">
             <ThemedText type="default" style={styles.emptyText}>
-              {errorMessage ?? 'No patients yet.'}
+              {errorMessage ?? t('patients.empty')}
             </ThemedText>
           </ThemedView>
         ) : null}
@@ -208,20 +210,21 @@ export function PatientsScreen() {
                         </ThemedText>
                         {patient.isPrimary ? (
                           <View style={styles.primaryPill}>
-                            <ThemedText style={styles.primaryPillText}>PRIMARY</ThemedText>
+                            <ThemedText style={styles.primaryPillText}>{t('patients.primary')}</ThemedText>
                           </View>
                         ) : null}
                       </View>
                       <ThemedText style={styles.cardRelation}>
-                        {patient.relationship ? patient.relationship : 'You'}
+                        {patient.relationship ? patient.relationship : t('patients.fallbackRelationship')}
                       </ThemedText>
                       {patient.age !== null ? (
-                        <ThemedText style={styles.cardAge}>Age {patient.age}</ThemedText>
+                        <ThemedText style={styles.cardAge}>
+                          {t('patients.ageLabel', { age: patient.age })}
+                        </ThemedText>
                       ) : null}
                       <ThemedText style={styles.cardMeta}>
                         <MaterialIcons name="description" size={12} color="#137FEC" />{' '}
-                        {patient.prescriptionsCount}{' '}
-                        {patient.prescriptionsCount === 1 ? 'Prescription' : 'Prescriptions'}
+                        {t('patients.prescriptionCount', { count: patient.prescriptionsCount })}
                       </ThemedText>
                     </View>
                   </Pressable>
@@ -232,7 +235,7 @@ export function PatientsScreen() {
                       style={({ pressed }) => [styles.deleteButton, pressed && styles.buttonPressed]}
                       testID={`patient-delete-${toPatientTestKey(patient.name)}`}
                     >
-                      <ThemedText style={styles.deleteButtonText}>Delete</ThemedText>
+                      <ThemedText style={styles.deleteButtonText}>{t('patients.deleteAction')}</ThemedText>
                     </Pressable>
                   </View>
                 </View>
@@ -243,7 +246,7 @@ export function PatientsScreen() {
 
         <View style={styles.footerBadge}>
           <MaterialIcons name="verified-user" size={14} color="#5E7290" />
-          <ThemedText style={styles.footerText}>End-to-end local encryption active</ThemedText>
+          <ThemedText style={styles.footerText}>{t('patients.footerPrivacy')}</ThemedText>
         </View>
       </ScrollView>
 
@@ -264,10 +267,10 @@ export function PatientsScreen() {
         <ThemedView style={styles.modalBackdrop} testID="delete-patient-modal">
           <ThemedView style={styles.modalCard}>
             <ThemedText type="subtitle" style={styles.modalTitle}>
-              Delete patient
+              {t('patients.deleteModalTitle')}
             </ThemedText>
             <ThemedText type="default" style={styles.modalText}>
-              Choose whether to delete all prescriptions or reassign them first.
+              {t('patients.deleteModalBody')}
             </ThemedText>
 
             <Pressable
@@ -277,15 +280,15 @@ export function PatientsScreen() {
               testID="delete-patient-delete-all-button"
             >
               <ThemedText style={styles.modalButtonLabel}>
-                {isDeleting ? 'Working...' : 'Delete all prescriptions'}
+                {isDeleting ? t('patients.deleteAllWorking') : t('patients.deleteAll')}
               </ThemedText>
             </Pressable>
 
-            <ThemedText style={styles.modalSection}>Reassign prescriptions</ThemedText>
+            <ThemedText style={styles.modalSection}>{t('patients.reassignSection')}</ThemedText>
             <ThemedView style={styles.reassignGroup}>
               {reassignCandidates.length === 0 ? (
                 <ThemedText style={styles.modalText} testID="delete-patient-no-reassign-targets">
-                  Add another patient to reassign prescriptions.
+                  {t('patients.noReassignTargets')}
                 </ThemedText>
               ) : (
                 reassignCandidates.map((patient) => (
@@ -300,7 +303,7 @@ export function PatientsScreen() {
                     testID={`delete-patient-reassign-target-${patient.id}`}
                   >
                     <ThemedText style={styles.modalText}>
-                      {reassignTargetId === patient.id ? 'Selected: ' : ''}
+                      {reassignTargetId === patient.id ? t('patients.selectedPrefix') : ''}
                       {patient.name}
                     </ThemedText>
                   </Pressable>
@@ -314,7 +317,7 @@ export function PatientsScreen() {
               disabled={isDeleting || !reassignTargetId}
               testID="delete-patient-reassign-button"
             >
-              <ThemedText style={styles.modalButtonLabel}>Reassign and delete patient</ThemedText>
+              <ThemedText style={styles.modalButtonLabel}>{t('patients.reassignAndDelete')}</ThemedText>
             </Pressable>
 
             <Pressable
@@ -323,7 +326,7 @@ export function PatientsScreen() {
               disabled={isDeleting}
               testID="delete-patient-cancel-button"
             >
-              <ThemedText style={styles.cancelLabel}>Cancel</ThemedText>
+              <ThemedText style={styles.cancelLabel}>{t('common.cancel')}</ThemedText>
             </Pressable>
           </ThemedView>
         </ThemedView>
@@ -356,7 +359,7 @@ const styles = StyleSheet.create({
   title: {
     color: '#E8EEF7',
     fontSize: 46 / 1.5,
-    lineHeight: 52 / 1.5,
+    lineHeight: 46,
     fontWeight: '800',
   },
   subtitle: {
