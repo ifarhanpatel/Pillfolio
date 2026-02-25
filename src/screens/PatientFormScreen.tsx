@@ -7,6 +7,7 @@ import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { initializeDb, openDb } from '@/src/db';
+import { useTranslation } from '@/src/i18n/LocaleProvider';
 import { createPatient, getPatientById, updatePatient } from '@/src/db/patients';
 import { validatePatientInput } from '@/src/utils/validation';
 
@@ -18,6 +19,7 @@ type PatientFormScreenProps = {
 };
 
 export function PatientFormScreen({ mode, patientId }: PatientFormScreenProps) {
+  const { t } = useTranslation();
   const insets = useContext(SafeAreaInsetsContext) ?? {
     top: 0,
     right: 0,
@@ -34,7 +36,10 @@ export function PatientFormScreen({ mode, patientId }: PatientFormScreenProps) {
   const [ageError, setAgeError] = useState<string | null>(null);
 
   const isEditMode = mode === 'edit';
-  const title = useMemo(() => (isEditMode ? 'Edit Patient' : 'Add Patient'), [isEditMode]);
+  const title = useMemo(
+    () => (isEditMode ? t('patientForm.editTitle') : t('patientForm.addTitle')),
+    [isEditMode, t]
+  );
 
   useEffect(() => {
     const loadPatient = async () => {
@@ -48,7 +53,7 @@ export function PatientFormScreen({ mode, patientId }: PatientFormScreenProps) {
         await initializeDb(driver);
         const patient = await getPatientById(driver, patientId);
         if (!patient) {
-          Alert.alert('Patient not found');
+          Alert.alert(t('patientForm.patientNotFound'));
           router.back();
           return;
         }
@@ -58,14 +63,14 @@ export function PatientFormScreen({ mode, patientId }: PatientFormScreenProps) {
         setAge(patient.age !== null ? String(patient.age) : '');
         setIsPrimary(patient.isPrimary);
       } catch {
-        Alert.alert('Failed to load patient');
+        Alert.alert(t('patientForm.loadFailed'));
       } finally {
         setLoading(false);
       }
     };
 
     void loadPatient();
-  }, [isEditMode, patientId]);
+  }, [isEditMode, patientId, t]);
 
   const savePatient = async () => {
     const trimmedAge = age.trim();
@@ -73,8 +78,8 @@ export function PatientFormScreen({ mode, patientId }: PatientFormScreenProps) {
     const normalizedAge = parsedAge !== null && Number.isNaN(parsedAge) ? -1 : parsedAge;
     const validation = validatePatientInput({ name, age: normalizedAge });
     if (!validation.valid) {
-      setNameError(validation.errors.name ?? 'Name is required.');
-      setAgeError(validation.errors.age ?? null);
+      setNameError(validation.errors.name ? t(validation.errors.name) : t('validation.name_required'));
+      setAgeError(validation.errors.age ? t(validation.errors.age) : null);
       return;
     }
 
@@ -100,7 +105,7 @@ export function PatientFormScreen({ mode, patientId }: PatientFormScreenProps) {
 
       router.back();
     } catch {
-      Alert.alert('Failed to save patient');
+      Alert.alert(t('patientForm.saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -122,12 +127,12 @@ export function PatientFormScreen({ mode, patientId }: PatientFormScreenProps) {
       <ThemedView style={styles.formCard}>
         <ThemedView style={styles.field}>
           <ThemedText type="defaultSemiBold" style={styles.label}>
-            Name *
+            {t('patientForm.nameLabel')}
           </ThemedText>
           <TextInput
             value={name}
             onChangeText={setName}
-            placeholder="Patient name"
+            placeholder={t('patientForm.patientNamePlaceholder')}
             placeholderTextColor="#7C96B1"
             style={styles.input}
             testID="patient-form-name-input"
@@ -140,12 +145,12 @@ export function PatientFormScreen({ mode, patientId }: PatientFormScreenProps) {
         </ThemedView>
         <ThemedView style={styles.field}>
           <ThemedText type="defaultSemiBold" style={styles.label}>
-            Relationship
+            {t('patientForm.relationshipLabel')}
           </ThemedText>
           <TextInput
             value={relationship}
             onChangeText={setRelationship}
-            placeholder="Optional"
+            placeholder={t('patientForm.optionalPlaceholder')}
             placeholderTextColor="#7C96B1"
             style={styles.input}
             testID="patient-form-relationship-input"
@@ -153,13 +158,13 @@ export function PatientFormScreen({ mode, patientId }: PatientFormScreenProps) {
         </ThemedView>
         <ThemedView style={styles.field}>
           <ThemedText type="defaultSemiBold" style={styles.label}>
-            Age
+            {t('patientForm.ageLabel')}
           </ThemedText>
           <TextInput
             value={age}
             onChangeText={setAge}
             keyboardType="number-pad"
-            placeholder="Optional"
+            placeholder={t('patientForm.optionalPlaceholder')}
             placeholderTextColor="#7C96B1"
             style={styles.input}
             testID="patient-form-age-input"
@@ -178,7 +183,7 @@ export function PatientFormScreen({ mode, patientId }: PatientFormScreenProps) {
           <View style={[styles.checkbox, isPrimary && styles.checkboxSelected]}>
             {isPrimary ? <MaterialIcons name="check" size={16} color="#EAF3FF" /> : null}
           </View>
-          <ThemedText style={styles.primaryToggleLabel}>Set as primary user</ThemedText>
+          <ThemedText style={styles.primaryToggleLabel}>{t('patientForm.primaryToggle')}</ThemedText>
         </Pressable>
         <Pressable
           onPress={() => void savePatient()}
@@ -191,7 +196,7 @@ export function PatientFormScreen({ mode, patientId }: PatientFormScreenProps) {
           testID="patient-form-save-button"
         >
           <ThemedText type="defaultSemiBold" style={styles.primaryButtonLabel}>
-            {saving ? 'Saving...' : 'Save Patient'}
+            {saving ? t('patientForm.savingButton') : t('patientForm.saveButton')}
           </ThemedText>
         </Pressable>
       </ThemedView>

@@ -1,6 +1,7 @@
-import { fireEvent, render, waitFor } from '@testing-library/react-native';
+import { fireEvent, waitFor } from '@testing-library/react-native';
 
 import { SettingsScreen } from '@/src/screens/SettingsScreen';
+import { renderWithI18n } from '@/src/__tests__/helpers/renderWithI18n';
 
 jest.mock('expo-constants', () => ({
   __esModule: true,
@@ -13,7 +14,7 @@ jest.mock('expo-constants', () => ({
 
 describe('SettingsScreen', () => {
   it('renders privacy warning and about section', () => {
-    const { getByText, getByTestId } = render(<SettingsScreen />);
+    const { getByText, getByTestId } = renderWithI18n(<SettingsScreen />);
 
     expect(getByText('Settings')).toBeTruthy();
     expect(getByTestId('settings-privacy')).toBeTruthy();
@@ -22,7 +23,7 @@ describe('SettingsScreen', () => {
   });
 
   it('renders export/restore actions', () => {
-    const { getByTestId, getByText } = render(<SettingsScreen />);
+    const { getByTestId, getByText } = renderWithI18n(<SettingsScreen />);
     const exportButton = getByTestId('settings-export-button');
     const saveToDeviceFilesButton = getByTestId('settings-save-device-files-button');
     const restoreButton = getByTestId('settings-restore-button');
@@ -38,7 +39,7 @@ describe('SettingsScreen', () => {
   it('calls export handler', async () => {
     const onExport = jest.fn(async () => undefined);
 
-    const { getByTestId } = render(<SettingsScreen onExport={onExport} />);
+    const { getByTestId } = renderWithI18n(<SettingsScreen onExport={onExport} />);
     fireEvent.press(getByTestId('settings-export-button'));
 
     await waitFor(() => {
@@ -49,7 +50,7 @@ describe('SettingsScreen', () => {
   it('calls restore handler', async () => {
     const onRestore = jest.fn(async () => undefined);
 
-    const { getByTestId } = render(<SettingsScreen onRestore={onRestore} />);
+    const { getByTestId } = renderWithI18n(<SettingsScreen onRestore={onRestore} />);
     fireEvent.press(getByTestId('settings-restore-button'));
 
     await waitFor(() => {
@@ -60,7 +61,7 @@ describe('SettingsScreen', () => {
   it('calls save to device files handler', async () => {
     const onSaveToDeviceFiles = jest.fn(async () => undefined);
 
-    const { getByTestId } = render(<SettingsScreen onSaveToDeviceFiles={onSaveToDeviceFiles} />);
+    const { getByTestId } = renderWithI18n(<SettingsScreen onSaveToDeviceFiles={onSaveToDeviceFiles} />);
     fireEvent.press(getByTestId('settings-save-device-files-button'));
 
     await waitFor(() => {
@@ -69,8 +70,17 @@ describe('SettingsScreen', () => {
   });
 
   it('renders app version', () => {
-    const { getByTestId } = render(<SettingsScreen />);
+    const { getByTestId } = renderWithI18n(<SettingsScreen />);
 
     expect(getByTestId('settings-version')).toHaveTextContent('App Version: 1.2.3');
+  });
+
+  it('changes language selection', async () => {
+    const { getByTestId, findByText } = renderWithI18n(<SettingsScreen />);
+
+    fireEvent.press(getByTestId('settings-language-option-hi'));
+
+    expect(getByTestId('settings-language-current')).toBeTruthy();
+    await findByText('सेटिंग्स');
   });
 });

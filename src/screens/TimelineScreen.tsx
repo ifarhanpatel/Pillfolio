@@ -9,6 +9,7 @@ import { initializeDb, openDb } from '@/src/db';
 import { listPatients } from '@/src/db/patients';
 import { searchPrescriptions } from '@/src/db/prescriptions';
 import type { Patient, Prescription } from '@/src/db/types';
+import { useAppLocale, useTranslation } from '@/src/i18n/LocaleProvider';
 
 export type TimelineData = {
   patient: Patient | null;
@@ -20,13 +21,13 @@ type TimelineScreenProps = {
   onOpenPrescription?: (prescriptionId: string) => void;
 };
 
-const formatVisitDate = (value: string): string => {
+const formatVisitDate = (value: string, locale: string): string => {
   const parsed = new Date(`${value}T00:00:00`);
   if (Number.isNaN(parsed.getTime())) {
     return value;
   }
 
-  return parsed.toLocaleDateString(undefined, {
+  return parsed.toLocaleDateString(locale, {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
@@ -78,6 +79,8 @@ export function TimelineScreen({
   loadData = defaultLoadTimelineData,
   onOpenPrescription,
 }: TimelineScreenProps) {
+  const { t } = useTranslation();
+  const { locale } = useAppLocale();
   const insets = useContext(SafeAreaInsetsContext) ?? {
     top: 0,
     right: 0,
@@ -117,7 +120,7 @@ export function TimelineScreen({
 
         setPatient(null);
         setPrescriptions([]);
-        setErrorMessage('Unable to load timeline.');
+        setErrorMessage(t('timeline.loadError'));
       } finally {
         if (mounted) {
           setIsLoading(false);
@@ -130,38 +133,37 @@ export function TimelineScreen({
     return () => {
       mounted = false;
     };
-  }, [loadData, query, searchAllPatients]);
+  }, [loadData, query, searchAllPatients, t]);
 
   const emptyStateMessage = useMemo(() => {
     if (query.trim()) {
       return searchAllPatients
-        ? 'No matching prescriptions found.'
-        : 'No matching prescriptions found for this patient.';
+        ? t('timeline.emptyMatchAll')
+        : t('timeline.emptyMatchSelected');
     }
 
     if (searchAllPatients) {
-      return 'No prescriptions found.';
+      return t('timeline.emptyAll');
     }
 
-    return 'No prescriptions found for this patient.';
-  }, [query, searchAllPatients]);
+    return t('timeline.emptySelected');
+  }, [query, searchAllPatients, t]);
 
   const patientSubtitle = useMemo(() => {
     if (searchAllPatients) {
-      return 'Showing prescriptions from all patients.';
+      return t('timeline.subtitleAllPatients');
     }
 
     if (patient) {
-      return `${patient.name}'s prescriptions`;
+      return t('timeline.subtitleForPatient', { name: patient.name });
     }
 
-    return 'Select a patient to view prescriptions.';
-  }, [patient, searchAllPatients]);
+    return t('timeline.subtitleNoPatient');
+  }, [patient, searchAllPatients, t]);
 
   const recordsSubtitle = useMemo(() => {
-    const label = prescriptions.length === 1 ? 'Record' : 'Records';
-    return `${prescriptions.length} ${label} Shown • Locally Stored`;
-  }, [prescriptions.length]);
+    return t('timeline.recordsShown', { count: prescriptions.length });
+  }, [prescriptions.length, t]);
 
   const refreshTimeline = async () => {
     setIsRefreshing(true);
@@ -174,7 +176,7 @@ export function TimelineScreen({
       setPrescriptions(sortPrescriptionsByVisitDateDesc(timelineData.prescriptions));
       setErrorMessage(null);
     } catch {
-      setErrorMessage('Unable to load timeline.');
+      setErrorMessage(t('timeline.loadError'));
     } finally {
       setIsRefreshing(false);
     }
@@ -191,7 +193,7 @@ export function TimelineScreen({
         >
           <View style={styles.cardBody}>
             <ThemedText style={styles.cardMeta} testID={`timeline-card-date-${item.id}`}>
-              {formatVisitDate(item.visitDate)}
+              {formatVisitDate(item.visitDate, locale)}
             </ThemedText>
             <ThemedText style={styles.cardDoctor}>{item.doctorName}</ThemedText>
             <ThemedText style={styles.cardTitle}>{item.condition}</ThemedText>
@@ -213,7 +215,9 @@ export function TimelineScreen({
     <ThemedView style={[styles.container, { paddingTop: insets.top + 8 }]} testID="timeline-screen">
       <View style={styles.headerRow}>
         <View style={styles.headTextWrap}>
-          <ThemedText style={styles.headerTitle}>Timeline</ThemedText>
+          <ThemedText style={styles.headerTitle} testID="timeline-title">
+            {t('timeline.title')}
+          </ThemedText>
           <ThemedText style={styles.headerSub}>{recordsSubtitle}</ThemedText>
           <ThemedText style={styles.headerSubSecondary}>{patientSubtitle}</ThemedText>
         </View>
@@ -222,7 +226,7 @@ export function TimelineScreen({
       <View style={styles.searchContainer} testID="timeline-search-panel">
         <MaterialIcons name="search" size={18} color="#60779A" />
         <TextInput
-          placeholder="Search prescriptions (e.g. Fever, Dr. Mehta)"
+          placeholder={t('timeline.searchPlaceholder')}
           placeholderTextColor="#60779A"
           autoCapitalize="none"
           value={query}
@@ -238,13 +242,13 @@ export function TimelineScreen({
         testID="timeline-search-scope-toggle"
       >
         <ThemedText style={styles.scopeLabel}>
-          {searchAllPatients ? 'Searching all patients' : 'Searching selected patient'}
+          {searchAllPatients ? t('timeline.scopeAll') : t('timeline.scopeSelected')}
         </ThemedText>
       </Pressable>
 
-      <ThemedText style={styles.monthLabel}>AUGUST 2023</ThemedText>
+      <ThemedText style={styles.monthLabel}>{t('timeline.monthPlaceholder')}</ThemedText>
 
-      {isLoading ? <ThemedText style={styles.helper}>Loading timeline...</ThemedText> : null}
+      {isLoading ? <ThemedText style={styles.helper}>{t('timeline.loading')}</ThemedText> : null}
       {!isLoading && errorMessage ? <ThemedText style={styles.helper}>{errorMessage}</ThemedText> : null}
       {!isLoading && !errorMessage && patient && prescriptions.length === 0 ? (
         <ThemedText style={styles.helper} testID="timeline-empty-state">
@@ -253,7 +257,7 @@ export function TimelineScreen({
       ) : null}
       {!isLoading && !errorMessage && !patient ? (
         <ThemedText style={styles.helper} testID="timeline-empty-state">
-          No patients available yet.
+          {t('timeline.noPatients')}
         </ThemedText>
       ) : null}
 

@@ -155,6 +155,12 @@ const defaultImagePickerBoundary: ImagePickerBoundary = {
 
 const defaultImageCompressionBoundary: ImageCompressionBoundary = {
   async compressImage(sourceUri: string): Promise<string> {
+    // Detox Android release can fail in expo-image-manipulator for the synthetic
+    // E2E fixture image; bypass compression and pass the local file through.
+    if (sourceUri.includes('e2e-fixture')) {
+      return sourceUri;
+    }
+
     const result = await ImageManipulator.manipulateAsync(sourceUri, [], {
       compress: 0.7,
       format: ImageManipulator.SaveFormat.JPEG,

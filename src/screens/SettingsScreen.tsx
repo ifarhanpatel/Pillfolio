@@ -12,6 +12,8 @@ import {
   saveBackupToDeviceFiles,
   type BackupImportMode,
 } from '@/src/services';
+import { useAppLocale, useTranslation } from '@/src/i18n/LocaleProvider';
+import { APP_LOCALE_OPTIONS } from '@/src/i18n/types';
 
 type SettingsScreenProps = {
   onExport?: () => Promise<void>;
@@ -24,11 +26,37 @@ export function SettingsScreen({
   onSaveToDeviceFiles,
   onRestore,
 }: SettingsScreenProps = {}) {
+  const { t } = useTranslation();
+  const { locale, setLocale } = useAppLocale();
   const insets = useContext(SafeAreaInsetsContext) ?? {
     top: 0,
     right: 0,
     bottom: 0,
     left: 0,
+  };
+  const appVersion = Constants.expoConfig?.version ?? t('settings.versionUnknown');
+  const boundaries = useMemo(() => createAppBoundaries(), []);
+  const [busy, setBusy] = useState(false);
+
+  const runExport = async () => {
+    if (busy) {
+      return;
+    }
+
+    setBusy(true);
+    try {
+      if (onExport) {
+        await onExport();
+      } else {
+        await exportBackup(boundaries);
+      }
+
+      Alert.alert('Backup Exported', 'Your backup file is ready to share.');
+    } catch (error) {
+      Alert.alert('Backup Error', error instanceof Error ? error.message : 'Unable to export backup.');
+    } finally {
+      setBusy(false);
+    }
   };
 
   const runSaveToDeviceFiles = async () => {
@@ -54,30 +82,6 @@ export function SettingsScreen({
         'Backup Error',
         error instanceof Error ? error.message : 'Unable to save backup to device files.'
       );
-    } finally {
-      setBusy(false);
-    }
-  };
-  const appVersion = Constants.expoConfig?.version ?? 'Unknown';
-  const boundaries = useMemo(() => createAppBoundaries(), []);
-  const [busy, setBusy] = useState(false);
-
-  const runExport = async () => {
-    if (busy) {
-      return;
-    }
-
-    setBusy(true);
-    try {
-      if (onExport) {
-        await onExport();
-      } else {
-        await exportBackup(boundaries);
-      }
-
-      Alert.alert('Backup Exported', 'Your backup file is ready to share.');
-    } catch (error) {
-      Alert.alert('Backup Error', error instanceof Error ? error.message : 'Unable to export backup.');
     } finally {
       setBusy(false);
     }
@@ -113,19 +117,48 @@ export function SettingsScreen({
   return (
     <ThemedView style={[styles.container, { paddingTop: insets.top + 8 }]} testID="settings-screen">
       <ThemedText type="title" style={styles.pageTitle}>
-        Settings
+        {t('settings.title')}
       </ThemedText>
+      <ThemedView style={styles.section} testID="settings-language">
+        <ThemedText type="subtitle" style={styles.sectionTitle}>
+          {t('settings.languageTitle')}
+        </ThemedText>
+        <ThemedText type="default" style={styles.bodyText} testID="settings-language-current">
+          {t('settings.languageCurrent', {
+            language: APP_LOCALE_OPTIONS.find((option) => option.code === locale)?.label ?? locale,
+          })}
+        </ThemedText>
+        <ThemedView style={styles.languageList}>
+          {APP_LOCALE_OPTIONS.map((option) => {
+            const selected = option.code === locale;
+            return (
+              <Pressable
+                key={option.code}
+                onPress={() => void setLocale(option.code)}
+                style={[styles.languageButton, selected && styles.languageButtonSelected]}
+                testID={`settings-language-option-${option.code}`}>
+                <ThemedText style={[styles.languageButtonText, selected && styles.languageButtonTextSelected]}>
+                  {t('settings.languageOptionLabel', {
+                    nativeLabel: option.nativeLabel,
+                    label: option.label,
+                  })}
+                </ThemedText>
+              </Pressable>
+            );
+          })}
+        </ThemedView>
+      </ThemedView>
       <ThemedView style={styles.section} testID="settings-privacy">
         <ThemedText type="subtitle" style={styles.sectionTitle}>
-          Privacy
+          {t('settings.privacyTitle')}
         </ThemedText>
         <ThemedText type="default" style={styles.bodyText}>
-          Your data is stored only on this device. No cloud sync is enabled.
+          {t('settings.privacyBody')}
         </ThemedText>
       </ThemedView>
       <ThemedView style={styles.section} testID="settings-backup">
         <ThemedText type="subtitle" style={styles.sectionTitle}>
-          Backup
+          {t('settings.backupTitle')}
         </ThemedText>
         <Pressable
           accessibilityRole="button"
@@ -178,10 +211,10 @@ export function SettingsScreen({
       </ThemedView>
       <ThemedView style={styles.section} testID="settings-about">
         <ThemedText type="subtitle" style={styles.sectionTitle}>
-          About
+          {t('settings.aboutTitle')}
         </ThemedText>
         <ThemedText type="default" style={styles.bodyText} testID="settings-version">
-          App Version: {appVersion}
+          {t('settings.versionLabel', { version: appVersion })}
         </ThemedText>
       </ThemedView>
     </ThemedView>
@@ -214,6 +247,29 @@ const styles = StyleSheet.create({
   },
   bodyText: {
     color: '#A9C1DB',
+  },
+  languageList: {
+    gap: 8,
+    backgroundColor: 'transparent',
+  },
+  languageButton: {
+    borderWidth: 1,
+    borderColor: '#2F4E6F',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    backgroundColor: '#0C1C2E',
+  },
+  languageButtonSelected: {
+    borderColor: '#137FEC',
+    backgroundColor: 'rgba(19,127,236,0.16)',
+  },
+  languageButtonText: {
+    color: '#B6CCE4',
+  },
+  languageButtonTextSelected: {
+    color: '#DCEEFF',
+    fontWeight: '700',
   },
   button: {
     paddingHorizontal: 12,

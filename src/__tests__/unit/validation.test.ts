@@ -14,7 +14,7 @@ describe("validation", () => {
     const result = validatePatientInput({ name: " " });
 
     expect(result.valid).toBe(false);
-    expect(result.errors.name).toBe("Name is required.");
+    expect(result.errors.name).toBe("validation.name_required");
   });
 
   test("validatePatientInput accepts name", () => {
@@ -28,14 +28,14 @@ describe("validation", () => {
     const result = validatePatientInput({ name: "Alex", gender: " " });
 
     expect(result.valid).toBe(false);
-    expect(result.errors.gender).toBe("Gender cannot be empty.");
+    expect(result.errors.gender).toBe("validation.gender_empty");
   });
 
   test("validatePatientInput rejects invalid age", () => {
     const result = validatePatientInput({ name: "Alex", age: 121 });
 
     expect(result.valid).toBe(false);
-    expect(result.errors.age).toBe("Age must be a whole number between 0 and 120.");
+    expect(result.errors.age).toBe("validation.age_invalid");
   });
 
   test("validatePatientInput accepts valid age", () => {
@@ -56,11 +56,11 @@ describe("validation", () => {
 
     expect(result.valid).toBe(false);
     expect(result.errors).toMatchObject({
-      doctorName: "Doctor name is required.",
-      condition: "Condition is required.",
-      tags: "At least one tag is required.",
-      visitDate: "Visit date is required.",
-      patientId: "Patient is required.",
+      doctorName: "validation.doctor_name_required",
+      condition: "validation.condition_required",
+      tags: "validation.tags_required",
+      visitDate: "validation.visit_date_required",
+      patientId: "validation.patient_required",
     });
   });
 
@@ -87,7 +87,7 @@ describe("validation", () => {
     });
 
     expect(result.valid).toBe(false);
-    expect(result.errors.visitDate).toBe("Visit date must be within 2026.");
+    expect(result.errors.visitDate).toBe("validation.visit_date_out_of_range");
   });
 
   test("validatePrescriptionInput rejects future visit date", () => {
@@ -100,6 +100,6 @@ describe("validation", () => {
     });
 
     expect(result.valid).toBe(false);
-    expect(result.errors.visitDate).toBe("Visit date cannot be in the future.");
+    expect(result.errors.visitDate).toBe("validation.visit_date_future");
   });
 });
