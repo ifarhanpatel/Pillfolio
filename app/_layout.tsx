@@ -5,6 +5,7 @@ import { LogBox } from "react-native";
 import "react-native-reanimated";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { LocaleProvider } from "@/src/i18n/LocaleProvider";
 
 // Prevent "Open debugger to view warnings" overlay from covering the tab bar during E2E tests.
 if (__DEV__) {
@@ -19,14 +20,16 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
 
   return (
-    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="add-edit-patient" options={{ headerShown: false }} />
-        <Stack.Screen name="add-edit-prescription" options={{ headerShown: false }} />
-        <Stack.Screen name="prescription-detail" options={{ headerShown: false }} />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    <LocaleProvider>
+      <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="add-edit-patient" options={{ headerShown: false }} />
+          <Stack.Screen name="add-edit-prescription" options={{ headerShown: false }} />
+          <Stack.Screen name="prescription-detail" options={{ headerShown: false }} />
+        </Stack>
+        <StatusBar style="auto" />
+      </ThemeProvider>
+    </LocaleProvider>
   );
 }

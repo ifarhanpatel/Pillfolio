@@ -18,6 +18,7 @@ import {
   parseTagInput,
   pickPrescriptionPhoto,
 } from '@/src/services';
+import { useTranslation } from '@/src/i18n/LocaleProvider';
 import { resolveE2EFixtureUri } from '@/src/utils/e2eFixture';
 
 export type PrescriptionFormMode = 'add' | 'edit';
@@ -92,6 +93,7 @@ const getPickerDateValue = (value: string): Date => {
 };
 
 export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFormScreenProps) {
+  const { t } = useTranslation();
   const insets = useContext(SafeAreaInsetsContext) ?? {
     top: 0,
     right: 0,
@@ -99,7 +101,7 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
     left: 0,
   };
   const isEditMode = mode === 'edit';
-  const title = mode === 'edit' ? 'Edit Prescription' : 'Add Prescription';
+  const title = mode === 'edit' ? t('prescriptionForm.editTitle') : t('prescriptionForm.addTitle');
   const boundaries = useMemo(() => createAppBoundaries(), []);
   const router = useRouter();
 
@@ -117,6 +119,8 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [message, setMessage] = useState('');
   const [saving, setSaving] = useState(false);
+  const localizeMaybeKey = (value: string): string =>
+    value.startsWith('validation.') || value.startsWith('prescriptionForm.') ? t(value) : value;
 
   const parsedTags = useMemo(() => parseTagInput(tagsInput), [tagsInput]);
   const navigateBack = () => {
@@ -147,7 +151,7 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
         if (isEditMode && prescriptionId) {
           const existing = await getPrescriptionById(driver, prescriptionId);
           if (!existing) {
-            setMessage('Prescription not found.');
+            setMessage(t('prescriptionForm.notFound'));
             return;
           }
 
@@ -169,7 +173,7 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
         setPatientId((current) => current || defaultPatientId);
       } catch (error) {
         if (active) {
-          setMessage(error instanceof Error ? error.message : 'Unable to load patients.');
+          setMessage(error instanceof Error ? error.message : t('prescriptionForm.loadPatientsFailed'));
         }
       } finally {
         if (active) {
@@ -183,7 +187,7 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
     return () => {
       active = false;
     };
-  }, [boundaries, isEditMode, prescriptionId]);
+  }, [boundaries, isEditMode, prescriptionId, t]);
 
   const onPickPhoto = async (source: 'camera' | 'library') => {
     setMessage('');
@@ -192,13 +196,13 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
     try {
       const selectedUri = await pickPrescriptionPhoto(boundaries, source);
       if (!selectedUri) {
-        setMessage('No photo was selected.');
+        setMessage(t('prescriptionForm.noPhotoSelected'));
         return;
       }
 
       setPhotoUri(selectedUri);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Unable to pick image.');
+      setMessage(error instanceof Error ? error.message : t('prescriptionForm.pickImageFailed'));
     }
   };
 
@@ -208,7 +212,7 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
     }
 
     if (isEditMode && !prescriptionId) {
-      setMessage('Prescription not found.');
+      setMessage(t('prescriptionForm.notFound'));
       return;
     }
 
@@ -217,8 +221,9 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
     setErrors({});
 
     try {
+      const isE2EFixtureSave = photoUri.trim() === 'e2e-fixture';
       const effectivePhotoUri =
-        photoUri.trim() === 'e2e-fixture' ? await resolveE2EFixtureUri() : photoUri.trim();
+        isE2EFixtureSave ? await resolveE2EFixtureUri() : photoUri.trim();
       const draft = {
         patientId,
         photoUri: effectivePhotoUri,
@@ -240,23 +245,25 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
       if (!result.ok) {
         setErrors(result.errors);
         if (result.errors.prescriptionId) {
-          setMessage(result.errors.prescriptionId);
+          setMessage(localizeMaybeKey(result.errors.prescriptionId));
         }
         return;
       }
 
       setErrors({});
 
-      Alert.alert(
-        isEditMode ? 'Prescription Updated' : 'Prescription Saved',
-        isEditMode ? 'Prescription changes were saved successfully.' : 'Prescription was saved successfully.'
-      );
+      if (!isE2EFixtureSave) {
+        Alert.alert(
+          isEditMode ? t('prescriptionForm.saveSuccessTitleEdit') : t('prescriptionForm.saveSuccessTitleAdd'),
+          isEditMode ? t('prescriptionForm.saveSuccessBodyEdit') : t('prescriptionForm.saveSuccessBodyAdd')
+        );
+      }
       router.replace({
         pathname: '/prescription-detail',
         params: { id: result.prescription.id },
       });
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Unable to save prescription.');
+      setMessage(error instanceof Error ? error.message : t('prescriptionForm.saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -279,7 +286,7 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
     return (
       <ScrollView contentContainerStyle={styles.scrollContent} testID="prescription-form-screen">
         <ThemedView style={styles.container}>
-          <ThemedText style={styles.helper}>Loading prescription...</ThemedText>
+          <ThemedText style={styles.helper}>{t('prescriptionForm.loading')}</ThemedText>
         </ThemedView>
       </ScrollView>
     );
@@ -295,21 +302,21 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
           </ThemedText>
         </Pressable>
         <Pressable onPress={navigateBack} hitSlop={10} testID="prescription-form-cancel">
-          <ThemedText style={styles.cancelLabel}>Cancel</ThemedText>
+          <ThemedText style={styles.cancelLabel}>{t('prescriptionForm.cancel')}</ThemedText>
         </Pressable>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} testID="prescription-form-screen" showsVerticalScrollIndicator={false}>
-        {message ? <ThemedText style={styles.message}>{message}</ThemedText> : null}
+        {message ? <ThemedText style={styles.message}>{localizeMaybeKey(message)}</ThemedText> : null}
 
         <ThemedView style={styles.photoSection} testID="prescription-form-photo">
-          <ThemedText style={styles.sectionLabel}>PRESCRIPTION PHOTO</ThemedText>
+          <ThemedText style={styles.sectionLabel}>{t('prescriptionForm.photoSection')}</ThemedText>
           <View style={styles.photoUploadCard}>
             <MaterialIcons name="add-a-photo" size={38} color="#137FEC" />
             <ThemedText type="subtitle" style={styles.uploadTitle}>
-              Upload Prescription
+              {t('prescriptionForm.uploadTitle')}
             </ThemedText>
-            <ThemedText style={styles.uploadSub}>Take a clear photo of the physical paper</ThemedText>
+            <ThemedText style={styles.uploadSub}>{t('prescriptionForm.uploadSubtitle')}</ThemedText>
             <View style={styles.photoActions}>
               <Pressable
                 style={[styles.galleryButton, styles.photoButton]}
@@ -317,7 +324,7 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
                 testID="pick-photo-library"
               >
                 <MaterialIcons name="photo-library" size={16} color="#137FEC" />
-                <ThemedText style={styles.galleryText}>Gallery</ThemedText>
+                <ThemedText style={styles.galleryText}>{t('prescriptionForm.gallery')}</ThemedText>
               </Pressable>
               <Pressable
                 style={[styles.cameraButton, styles.photoButton]}
@@ -325,13 +332,13 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
                 testID="pick-photo-camera"
               >
                 <MaterialIcons name="photo-camera" size={16} color="#EAF4FF" />
-                <ThemedText style={styles.cameraText}>Camera</ThemedText>
+                <ThemedText style={styles.cameraText}>{t('prescriptionForm.camera')}</ThemedText>
               </Pressable>
             </View>
           </View>
 
           <TextInput
-            placeholder="Photo URI"
+            placeholder={t('prescriptionForm.photoUriPlaceholder')}
             placeholderTextColor="#738BAA"
             value={photoUri}
             onChangeText={setPhotoUri}
@@ -339,16 +346,16 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
             style={styles.input}
             testID="prescription-photo-uri-input"
           />
-          {errors.photoUri ? <ThemedText style={styles.error}>{errors.photoUri}</ThemedText> : null}
+          {errors.photoUri ? <ThemedText style={styles.error}>{localizeMaybeKey(errors.photoUri)}</ThemedText> : null}
         </ThemedView>
 
         <ThemedView style={styles.section} testID="prescription-form-fields">
-          <ThemedText style={styles.sectionLabel}>MEDICAL DETAILS</ThemedText>
+          <ThemedText style={styles.sectionLabel}>{t('prescriptionForm.detailsSection')}</ThemedText>
 
-          <ThemedText style={styles.label}>Doctor Name *</ThemedText>
+          <ThemedText style={styles.label}>{t('prescriptionForm.doctorNameLabel')}</ThemedText>
           <View style={styles.inputIconWrap}>
             <TextInput
-              placeholder="e.g. Dr. Rajesh Kumar"
+              placeholder={t('prescriptionForm.doctorNamePlaceholder')}
               placeholderTextColor="#738BAA"
               value={doctorName}
               onChangeText={setDoctorName}
@@ -357,20 +364,20 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
             />
             <MaterialIcons name="person" size={18} color="#92A8C2" style={styles.inputIcon} />
           </View>
-          {errors.doctorName ? <ThemedText style={styles.error}>{errors.doctorName}</ThemedText> : null}
+          {errors.doctorName ? <ThemedText style={styles.error}>{localizeMaybeKey(errors.doctorName)}</ThemedText> : null}
 
-          <ThemedText style={styles.label}>Condition *</ThemedText>
+          <ThemedText style={styles.label}>{t('prescriptionForm.conditionLabel')}</ThemedText>
           <TextInput
-            placeholder="e.g. Seasonal Allergy, Hypertension"
+            placeholder={t('prescriptionForm.conditionPlaceholder')}
             placeholderTextColor="#738BAA"
             value={condition}
             onChangeText={setCondition}
             style={styles.input}
             testID="prescription-condition-input"
           />
-          {errors.condition ? <ThemedText style={styles.error}>{errors.condition}</ThemedText> : null}
+          {errors.condition ? <ThemedText style={styles.error}>{localizeMaybeKey(errors.condition)}</ThemedText> : null}
 
-          <ThemedText style={styles.label}>Date of Visit</ThemedText>
+          <ThemedText style={styles.label}>{t('prescriptionForm.visitDateLabel')}</ThemedText>
           <View style={styles.inputIconWrap}>
             {Platform.OS === 'web' ? (
               <View style={styles.webDateInputFrame}>
@@ -381,7 +388,7 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
                   max={getVisitDateMax()}
                   onChange={(event) => setVisitDate(event.currentTarget.value)}
                   data-testid="prescription-visit-date-value"
-                  aria-label="Date of Visit"
+                  aria-label={t('prescriptionForm.dateAriaLabel')}
                   style={webDateInputStyle}
                 />
               </View>
@@ -420,12 +427,12 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
               />
             </View>
           ) : null}
-          <ThemedText style={styles.helperInline}>Use the system calendar picker. Only 2026 dates up to today are allowed.</ThemedText>
-          {errors.visitDate ? <ThemedText style={styles.error}>{errors.visitDate}</ThemedText> : null}
+          <ThemedText style={styles.helperInline}>{t('prescriptionForm.visitDateHelper')}</ThemedText>
+          {errors.visitDate ? <ThemedText style={styles.error}>{localizeMaybeKey(errors.visitDate)}</ThemedText> : null}
 
-          <ThemedText style={styles.label}>Specialty (optional)</ThemedText>
+          <ThemedText style={styles.label}>{t('prescriptionForm.specialtyLabel')}</ThemedText>
           <TextInput
-            placeholder="Cardiology"
+            placeholder={t('prescriptionForm.specialtyPlaceholder')}
             placeholderTextColor="#738BAA"
             value={doctorSpecialty}
             onChangeText={setDoctorSpecialty}
@@ -433,9 +440,9 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
             testID="prescription-specialty-input"
           />
 
-          <ThemedText style={styles.label}>Tags & Family Member</ThemedText>
+          <ThemedText style={styles.label}>{t('prescriptionForm.tagsLabel')}</ThemedText>
           <TextInput
-            placeholder="self, dad, chronic"
+            placeholder={t('prescriptionForm.tagsPlaceholder')}
             placeholderTextColor="#738BAA"
             value={tagsInput}
             onChangeText={setTagsInput}
@@ -462,11 +469,11 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
               </View>
             ))}
           </View>
-          {errors.tags ? <ThemedText style={styles.error}>{errors.tags}</ThemedText> : null}
+          {errors.tags ? <ThemedText style={styles.error}>{localizeMaybeKey(errors.tags)}</ThemedText> : null}
 
-          <ThemedText style={styles.label}>Notes</ThemedText>
+          <ThemedText style={styles.label}>{t('prescriptionForm.notesLabel')}</ThemedText>
           <TextInput
-            placeholder="Optional notes"
+            placeholder={t('prescriptionForm.notesPlaceholder')}
             placeholderTextColor="#738BAA"
             value={notes}
             onChangeText={setNotes}
@@ -478,7 +485,7 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
       </ScrollView>
 
       <View style={styles.footer}>
-        <ThemedText style={styles.footerNote}>All data is encrypted and stored locally on your device</ThemedText>
+        <ThemedText style={styles.footerNote}>{t('prescriptionForm.footerNote')}</ThemedText>
         <Pressable
           style={[styles.saveButton, (saving || isLoading) && styles.saveButtonDisabled]}
           onPress={onSave}
@@ -487,7 +494,11 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
         >
           <MaterialIcons name="save" size={20} color="#EEF6FF" />
           <ThemedText type="defaultSemiBold" style={styles.saveButtonLabel}>
-            {saving ? 'Saving...' : mode === 'edit' ? 'Save Changes' : 'Save Prescription'}
+            {saving
+              ? t('common.saving')
+              : mode === 'edit'
+                ? t('prescriptionForm.saveEdit')
+                : t('prescriptionForm.saveAdd')}
           </ThemedText>
         </Pressable>
       </View>

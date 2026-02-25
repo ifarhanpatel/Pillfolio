@@ -2,8 +2,21 @@ import type { NewPatientInput, NewPrescriptionInput } from "../db/types";
 
 export type ValidationResult = {
   valid: boolean;
-  errors: Record<string, string>;
+  errors: Record<string, ValidationErrorCode>;
 };
+
+export type ValidationErrorCode =
+  | "validation.name_required"
+  | "validation.gender_empty"
+  | "validation.age_invalid"
+  | "validation.doctor_name_required"
+  | "validation.condition_required"
+  | "validation.patient_required"
+  | "validation.tags_required"
+  | "validation.visit_date_required"
+  | "validation.visit_date_out_of_range"
+  | "validation.visit_date_future"
+  | "validation.photo_required";
 
 const emptyResult = (): ValidationResult => ({ valid: true, errors: {} });
 const PRESCRIPTION_VISIT_DATE_MIN = "2026-01-01";
@@ -18,7 +31,7 @@ const formatDateOnly = (date: Date): string => {
 const addError = (
   result: ValidationResult,
   field: string,
-  message: string
+  message: ValidationErrorCode
 ): ValidationResult => {
   return {
     valid: false,
@@ -38,16 +51,16 @@ export const validatePatientInput = (input: NewPatientInput): ValidationResult =
   const age = hasAge ? (input.age ?? null) : null;
 
   if (!name) {
-    result = addError(result, "name", "Name is required.");
+    result = addError(result, "name", "validation.name_required");
   }
 
   if (hasGender && !gender) {
-    result = addError(result, "gender", "Gender cannot be empty.");
+    result = addError(result, "gender", "validation.gender_empty");
   }
 
   if (hasAge && age !== null) {
     if (!Number.isInteger(age) || age < 0 || age > 120) {
-      result = addError(result, "age", "Age must be a whole number between 0 and 120.");
+      result = addError(result, "age", "validation.age_invalid");
     }
   }
 
@@ -67,27 +80,27 @@ export const validatePrescriptionInput = (
   const visitDate = input.visitDate?.trim();
 
   if (!doctorName) {
-    result = addError(result, "doctorName", "Doctor name is required.");
+    result = addError(result, "doctorName", "validation.doctor_name_required");
   }
 
   if (!condition) {
-    result = addError(result, "condition", "Condition is required.");
+    result = addError(result, "condition", "validation.condition_required");
   }
 
   if (!patientId) {
-    result = addError(result, "patientId", "Patient is required.");
+    result = addError(result, "patientId", "validation.patient_required");
   }
 
   if (!input.tags || input.tags.length === 0) {
-    result = addError(result, "tags", "At least one tag is required.");
+    result = addError(result, "tags", "validation.tags_required");
   }
 
   if (!visitDate || Number.isNaN(Date.parse(visitDate))) {
-    result = addError(result, "visitDate", "Visit date is required.");
+    result = addError(result, "visitDate", "validation.visit_date_required");
   } else if (visitDate < PRESCRIPTION_VISIT_DATE_MIN || visitDate > PRESCRIPTION_VISIT_DATE_MAX) {
-    result = addError(result, "visitDate", "Visit date must be within 2026.");
+    result = addError(result, "visitDate", "validation.visit_date_out_of_range");
   } else if (visitDate > formatDateOnly(new Date())) {
-    result = addError(result, "visitDate", "Visit date cannot be in the future.");
+    result = addError(result, "visitDate", "validation.visit_date_future");
   }
 
   return result;
