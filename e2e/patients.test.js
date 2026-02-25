@@ -1,6 +1,7 @@
 describe("Patient CRUD flows", () => {
   beforeEach(async () => {
     await device.launchApp({ newInstance: true, delete: true });
+    await waitFor(element(by.id("patients-screen"))).toBeVisible().withTimeout(20000);
   });
 
   it("creates and edits a patient", async () => {

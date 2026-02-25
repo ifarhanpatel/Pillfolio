@@ -215,7 +215,9 @@ export function TimelineScreen({
     <ThemedView style={[styles.container, { paddingTop: insets.top + 8 }]} testID="timeline-screen">
       <View style={styles.headerRow}>
         <View style={styles.headTextWrap}>
-          <ThemedText style={styles.headerTitle}>{t('timeline.title')}</ThemedText>
+          <ThemedText style={styles.headerTitle} testID="timeline-title">
+            {t('timeline.title')}
+          </ThemedText>
           <ThemedText style={styles.headerSub}>{recordsSubtitle}</ThemedText>
           <ThemedText style={styles.headerSubSecondary}>{patientSubtitle}</ThemedText>
         </View>

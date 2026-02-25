@@ -29,6 +29,22 @@ const normalizeOptional = (value: string): string | null => {
   return trimmed.length > 0 ? trimmed : null;
 };
 
+const resolveStoredImageExtension = (uri: string): string => {
+  const normalized = uri.split("?")[0]?.split("#")[0] ?? uri;
+  const match = normalized.match(/\.([a-zA-Z0-9]+)$/);
+  const extension = match?.[1]?.toLowerCase();
+
+  if (!extension) {
+    return "jpg";
+  }
+
+  if (extension === "jpeg") {
+    return "jpg";
+  }
+
+  return extension;
+};
+
 export type AddPrescriptionDraft = {
   patientId: string;
   photoUri: string;
@@ -177,7 +193,7 @@ export const addPrescription = async (
   logFlow("addPrescription:save-image");
   const storedUri = await boundaries.fileStorage.saveImage(
     compressedUri,
-    `prescription-${createId()}.jpg`
+    `prescription-${createId()}.${resolveStoredImageExtension(compressedUri)}`
   );
   logFlow("addPrescription:image-saved", { storedUri });
 
@@ -233,7 +249,7 @@ export const editPrescription = async (
     const compressedUri = await boundaries.imageCompression.compressImage(nextPhotoUriRaw);
     nextStoredPhotoUri = await boundaries.fileStorage.saveImage(
       compressedUri,
-      `prescription-${createId()}.jpg`
+      `prescription-${createId()}.${resolveStoredImageExtension(compressedUri)}`
     );
     previousPhotoToDelete = existing.photoUri;
   }

@@ -27,6 +27,7 @@ describe("App launch smoke test", () => {
 
   beforeEach(async () => {
     await device.launchApp({ newInstance: true, delete: true });
+    await waitFor(element(by.id("patients-screen"))).toBeVisible().withTimeout(20000);
   });
 
   it("shows the Patients screen", async () => {
@@ -38,7 +39,7 @@ describe("App launch smoke test", () => {
     await waitFor(element(by.id("prescription-form-screen")))
       .toBeVisible()
       .withTimeout(15000);
-    await waitFor(element(by.text("Self"))).toBeVisible().withTimeout(20000);
+    await waitFor(element(by.id("prescription-photo-uri-input"))).toBeVisible().withTimeout(20000);
 
     await element(by.id("prescription-photo-uri-input")).replaceText("e2e-fixture");
     await element(by.id("prescription-doctor-input")).replaceText("Dr. Lee");

@@ -25,11 +25,14 @@
     "e2e:android:build": "detox build --configuration android.emu.debug",
     "e2e:android:run": "detox test --configuration android.emu.debug",
     "e2e:android:run:verbose": "detox test --configuration android.emu.debug --loglevel verbose",
+    "e2e:android:run:verbose:ci": "detox test --configuration android.emu.release --loglevel verbose",
     "e2e:android:clean": "adb uninstall com.anonymous.Pillfolio; adb uninstall com.anonymous.Pillfolio.test",
-    "e2e:android": "yarn prebuild:android && yarn e2e:android:build && yarn e2e:android:run",
+    "e2e:android:debug": "yarn prebuild:android && yarn e2e:android:build && yarn e2e:android:run",
     "e2e:android:build:ci": "detox build --configuration android.emu.release",
     "e2e:android:run:ci": "detox test --configuration android.emu.release",
     "e2e:android:ci": "yarn prebuild:android && yarn e2e:android:build:ci && yarn e2e:android:run:ci",
+    "e2e:android:verbose": "yarn prebuild:android && yarn e2e:android:build:ci && yarn e2e:android:run:verbose:ci",
+    "e2e:android": "yarn e2e:android:ci",
     "e2e:ci": "yarn e2e:ios:run:ci"
   },
   "dependencies": {

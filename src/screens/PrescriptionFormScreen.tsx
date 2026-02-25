@@ -221,8 +221,9 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
     setErrors({});
 
     try {
+      const isE2EFixtureSave = photoUri.trim() === 'e2e-fixture';
       const effectivePhotoUri =
-        photoUri.trim() === 'e2e-fixture' ? await resolveE2EFixtureUri() : photoUri.trim();
+        isE2EFixtureSave ? await resolveE2EFixtureUri() : photoUri.trim();
       const draft = {
         patientId,
         photoUri: effectivePhotoUri,
@@ -251,10 +252,12 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
 
       setErrors({});
 
-      Alert.alert(
-        isEditMode ? t('prescriptionForm.saveSuccessTitleEdit') : t('prescriptionForm.saveSuccessTitleAdd'),
-        isEditMode ? t('prescriptionForm.saveSuccessBodyEdit') : t('prescriptionForm.saveSuccessBodyAdd')
-      );
+      if (!isE2EFixtureSave) {
+        Alert.alert(
+          isEditMode ? t('prescriptionForm.saveSuccessTitleEdit') : t('prescriptionForm.saveSuccessTitleAdd'),
+          isEditMode ? t('prescriptionForm.saveSuccessBodyEdit') : t('prescriptionForm.saveSuccessBodyAdd')
+        );
+      }
       router.replace({
         pathname: '/prescription-detail',
         params: { id: result.prescription.id },

@@ -25,8 +25,10 @@ yarn start
 - `yarn e2e`: Detox against `ios.sim.debug`.
 - `yarn e2e:ci`: Detox against `ios.sim.release`.
 - `yarn e2e:ios`: Prebuild + iOS Detox build + iOS Detox run.
-- `yarn e2e:android`: Prebuild + Android Detox build + Android Detox run.
-- `yarn e2e:android:run:verbose`: Same as run but with Detox verbose logs.
+- `yarn e2e:android`: Prebuild + Android Detox release build + Android Detox release run (deterministic default).
+- `yarn e2e:android:debug`: Prebuild + Android Detox debug build + Android Detox debug run (requires Metro).
+- `yarn e2e:android:verbose`: Prebuild + Android Detox release build + verbose release run.
+- `yarn e2e:android:run:verbose`: Detox Android debug run with verbose logs (requires Metro).
 - `yarn e2e:android:clean`: Uninstall app and test app from connected device/emulator (use if `pm install` fails).
 - `yarn e2e:android:build:ci`: Detox Android release build.
 - `yarn e2e:android:run:ci`: Detox Android release test run.
@@ -43,7 +45,7 @@ yarn e2e:android:build
 
 Then run tests with Metro (see below).
 
-### Android E2E: run tests (Metro required)
+### Android E2E: debug run tests (Metro required)
 
 The debug app loads the JS bundle from **Metro**. Start Metro in a **separate terminal**, then run the tests:
 
@@ -57,6 +59,17 @@ yarn e2e:android:run
 ```
 
 If Metro isn’t running, tests fail with “Failed to run application on the device” / “waiting for ready message (over WebSocket)”.
+
+### Localization dev workflow (cache reset)
+
+When translation resources change, stale bundles can make the app appear partially untranslated even after code fixes.
+
+```bash
+# Clear Metro/Expo cache before re-checking localized UI
+npx expo start -c
+```
+
+If you changed native dependencies (for example AsyncStorage), rebuild the dev client before re-running the app or Detox.
 
 ### Android E2E: install failing
 
