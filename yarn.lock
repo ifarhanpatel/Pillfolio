@@ -5826,6 +5826,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"expo-document-picker@npm:^14.0.8":
+  version: 14.0.8
+  resolution: "expo-document-picker@npm:14.0.8"
+  peerDependencies:
+    expo: "*"
+  checksum: 10c0/1ef6aa129397e09269f5f47d6dbe338dc071ca51a24b98ed8bf21c3042c8a9ff806d31e14a9033bbc459ec4953aeb049f0648a083a71db43948255b6c1942e3e
+  languageName: node
+  linkType: hard
+
 "expo-file-system@npm:~19.0.14, expo-file-system@npm:~19.0.21":
   version: 19.0.21
   resolution: "expo-file-system@npm:19.0.21"
@@ -6020,6 +6029,15 @@ __metadata:
   version: 1.0.5
   resolution: "expo-server@npm:1.0.5"
   checksum: 10c0/0da974f733235d457f7ce51e5452f48f203378687f821bdab7159617a491c0192251423a17a7a3a118486e1cbfffff5d5ad31aeeedcf2cfad6412a1bd7e86877
+  languageName: node
+  linkType: hard
+
+"expo-sharing@npm:^14.0.8":
+  version: 14.0.8
+  resolution: "expo-sharing@npm:14.0.8"
+  peerDependencies:
+    expo: "*"
+  checksum: 10c0/64c6f42272b7e762988dbb92af6eabb71bd8229366cdc675cda78513fea39c46c9a46bb250ffaf5587b8361bd824a89820e46771cb5f97fc16bbfc87e3f00518
   languageName: node
   linkType: hard
 
@@ -9612,6 +9630,7 @@ __metadata:
     expo: "npm:~54.0.7"
     expo-constants: "npm:~18.0.8"
     expo-detox-config-plugin: "npm:^12.0.0"
+    expo-document-picker: "npm:^14.0.8"
     expo-file-system: "npm:~19.0.14"
     expo-font: "npm:~14.0.8"
     expo-haptics: "npm:~15.0.7"
@@ -9620,6 +9639,7 @@ __metadata:
     expo-image-picker: "npm:~17.0.8"
     expo-linking: "npm:~8.0.8"
     expo-router: "npm:~6.0.4"
+    expo-sharing: "npm:^14.0.8"
     expo-splash-screen: "npm:~31.0.10"
     expo-sqlite: "npm:~16.0.10"
     expo-status-bar: "npm:~3.0.8"

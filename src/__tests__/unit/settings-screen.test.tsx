@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react-native';
+import { fireEvent, render, waitFor } from '@testing-library/react-native';
 
 import { SettingsScreen } from '@/src/screens/SettingsScreen';
 
@@ -21,12 +21,37 @@ describe('SettingsScreen', () => {
     expect(getByTestId('settings-about')).toBeTruthy();
   });
 
-  it('renders disabled export/backup placeholder', () => {
+  it('renders export/restore actions', () => {
     const { getByTestId, getByText } = render(<SettingsScreen />);
-    const button = getByTestId('settings-export-button');
+    const exportButton = getByTestId('settings-export-button');
+    const restoreButton = getByTestId('settings-restore-button');
 
-    expect(getByText('Export/Backup (Coming Soon)')).toBeTruthy();
-    expect(button).toBeDisabled();
+    expect(getByText('Export Backup')).toBeTruthy();
+    expect(getByText('Restore Backup')).toBeTruthy();
+    expect(exportButton).toBeEnabled();
+    expect(restoreButton).toBeEnabled();
+  });
+
+  it('calls export handler', async () => {
+    const onExport = jest.fn(async () => undefined);
+
+    const { getByTestId } = render(<SettingsScreen onExport={onExport} />);
+    fireEvent.press(getByTestId('settings-export-button'));
+
+    await waitFor(() => {
+      expect(onExport).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('calls restore handler', async () => {
+    const onRestore = jest.fn(async () => undefined);
+
+    const { getByTestId } = render(<SettingsScreen onRestore={onRestore} />);
+    fireEvent.press(getByTestId('settings-restore-button'));
+
+    await waitFor(() => {
+      expect(onRestore).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('renders app version', () => {

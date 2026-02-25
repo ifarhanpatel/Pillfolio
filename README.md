@@ -96,3 +96,15 @@ Use this checklist before merging into `main`:
 - [ ] `yarn e2e:ci` passes (or a documented reason is provided).
 - [ ] GitHub Actions `lint`, `unit`, and `e2e-ios` are green.
 - [ ] Feature scope and regression risk reviewed.
+
+## Backup & Restore
+The Settings tab now supports local backup export and restore on iOS and Android.
+
+- **Export Backup**: generates a JSON snapshot of patients + prescriptions and opens the platform share sheet.
+- **Restore Backup**: imports a selected backup file in **replace** mode (clears existing local data first).
+- **Restore Backup (Merge)**: imports a selected backup file in **merge** mode (upserts by ID).
+
+Notes:
+- Backup files are saved under the app document directory (`backups/`) before sharing.
+- If no file is selected during restore, the operation is cancelled safely.
+- This is a local-only feature; no cloud sync is enabled.
