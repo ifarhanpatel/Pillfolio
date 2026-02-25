@@ -1,0 +1,4 @@
+interface:
+  display_name: "TDD Feature Development"
+  short_description: "Drive feature work with a red-green-refactor workflow"
+  default_prompt: "Implement this feature using TDD: define a small behavior slice, write a failing test first, make it pass with the smallest change, then refactor safely."
