@@ -1,5 +1,5 @@
 import { useContext, useEffect, useMemo, useState } from 'react';
-import { Alert, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
@@ -18,6 +18,13 @@ import {
   parseTagInput,
   pickPrescriptionPhoto,
 } from '@/src/services';
+import {
+  autoThemeColor,
+  createAutoThemedStyles,
+  useAutoThemeColor,
+  useAutoThemedStyles,
+  useResolvedThemeMode,
+} from '@/src/theme/auto-theme';
 import { resolveE2EFixtureUri } from '@/src/utils/e2eFixture';
 
 export type PrescriptionFormMode = 'add' | 'edit';
@@ -92,6 +99,9 @@ const getPickerDateValue = (value: string): Date => {
 };
 
 export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFormScreenProps) {
+  const styles = useAutoThemedStyles(screenStyles);
+  const color = useAutoThemeColor();
+  const themeMode = useResolvedThemeMode();
   const insets = useContext(SafeAreaInsetsContext) ?? {
     top: 0,
     right: 0,
@@ -289,7 +299,7 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
     <ThemedView style={styles.screen}>
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <Pressable style={styles.headerLeft} onPress={navigateBack} hitSlop={10} testID="prescription-form-back">
-          <MaterialIcons name="arrow-back-ios-new" size={18} color="#E1EBF8" />
+          <MaterialIcons name="arrow-back-ios-new" size={18} color={color('#E1EBF8')} />
           <ThemedText type="title" style={styles.headerTitle}>
             {title}
           </ThemedText>
@@ -305,7 +315,7 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
         <ThemedView style={styles.photoSection} testID="prescription-form-photo">
           <ThemedText style={styles.sectionLabel}>PRESCRIPTION PHOTO</ThemedText>
           <View style={styles.photoUploadCard}>
-            <MaterialIcons name="add-a-photo" size={38} color="#137FEC" />
+            <MaterialIcons name="add-a-photo" size={38} color={color('#137FEC')} />
             <ThemedText type="subtitle" style={styles.uploadTitle}>
               Upload Prescription
             </ThemedText>
@@ -316,7 +326,7 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
                 onPress={() => onPickPhoto('library')}
                 testID="pick-photo-library"
               >
-                <MaterialIcons name="photo-library" size={16} color="#137FEC" />
+                <MaterialIcons name="photo-library" size={16} color={color('#137FEC')} />
                 <ThemedText style={styles.galleryText}>Gallery</ThemedText>
               </Pressable>
               <Pressable
@@ -324,7 +334,7 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
                 onPress={() => onPickPhoto('camera')}
                 testID="pick-photo-camera"
               >
-                <MaterialIcons name="photo-camera" size={16} color="#EAF4FF" />
+                <MaterialIcons name="photo-camera" size={16} color={color('#EAF4FF')} />
                 <ThemedText style={styles.cameraText}>Camera</ThemedText>
               </Pressable>
             </View>
@@ -332,7 +342,7 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
 
           <TextInput
             placeholder="Photo URI"
-            placeholderTextColor="#738BAA"
+            placeholderTextColor={color('#738BAA')}
             value={photoUri}
             onChangeText={setPhotoUri}
             autoCapitalize="none"
@@ -349,20 +359,20 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
           <View style={styles.inputIconWrap}>
             <TextInput
               placeholder="e.g. Dr. Rajesh Kumar"
-              placeholderTextColor="#738BAA"
+              placeholderTextColor={color('#738BAA')}
               value={doctorName}
               onChangeText={setDoctorName}
               style={[styles.input, styles.inputWithIcon]}
               testID="prescription-doctor-input"
             />
-            <MaterialIcons name="person" size={18} color="#92A8C2" style={styles.inputIcon} />
+            <MaterialIcons name="person" size={18} color={color('#92A8C2')} style={styles.inputIcon} />
           </View>
           {errors.doctorName ? <ThemedText style={styles.error}>{errors.doctorName}</ThemedText> : null}
 
           <ThemedText style={styles.label}>Condition *</ThemedText>
           <TextInput
             placeholder="e.g. Seasonal Allergy, Hypertension"
-            placeholderTextColor="#738BAA"
+            placeholderTextColor={color('#738BAA')}
             value={condition}
             onChangeText={setCondition}
             style={styles.input}
@@ -382,7 +392,7 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
                   onChange={(event) => setVisitDate(event.currentTarget.value)}
                   data-testid="prescription-visit-date-value"
                   aria-label="Date of Visit"
-                  style={webDateInputStyle}
+                  style={getWebDateInputStyle(themeMode)}
                 />
               </View>
             ) : (
@@ -397,7 +407,7 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
               testID="visit-date-today"
               style={styles.inputIconAction}
             >
-              <MaterialIcons name="calendar-today" size={18} color="#92A8C2" />
+              <MaterialIcons name="calendar-today" size={18} color={color('#92A8C2')} />
             </Pressable>
           </View>
           {Platform.OS !== 'web' && showDatePicker ? (
@@ -411,8 +421,8 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
                 onChange={onNativeDateChange}
                 {...(Platform.OS === 'ios'
                   ? {
-                      themeVariant: 'dark' as const,
-                      accentColor: '#137FEC',
+                      themeVariant: themeMode,
+                      accentColor: color('#137FEC'),
                     }
                   : {
                       design: 'material' as const,
@@ -426,7 +436,7 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
           <ThemedText style={styles.label}>Specialty (optional)</ThemedText>
           <TextInput
             placeholder="Cardiology"
-            placeholderTextColor="#738BAA"
+            placeholderTextColor={color('#738BAA')}
             value={doctorSpecialty}
             onChangeText={setDoctorSpecialty}
             style={styles.input}
@@ -436,7 +446,7 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
           <ThemedText style={styles.label}>Tags & Family Member</ThemedText>
           <TextInput
             placeholder="self, dad, chronic"
-            placeholderTextColor="#738BAA"
+            placeholderTextColor={color('#738BAA')}
             value={tagsInput}
             onChangeText={setTagsInput}
             style={styles.input}
@@ -467,7 +477,7 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
           <ThemedText style={styles.label}>Notes</ThemedText>
           <TextInput
             placeholder="Optional notes"
-            placeholderTextColor="#738BAA"
+            placeholderTextColor={color('#738BAA')}
             value={notes}
             onChangeText={setNotes}
             style={[styles.input, styles.notesInput]}
@@ -485,7 +495,7 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
           disabled={saving || isLoading}
           testID="prescription-save-button"
         >
-          <MaterialIcons name="save" size={20} color="#EEF6FF" />
+          <MaterialIcons name="save" size={20} color={color('#EEF6FF')} />
           <ThemedText type="defaultSemiBold" style={styles.saveButtonLabel}>
             {saving ? 'Saving...' : mode === 'edit' ? 'Save Changes' : 'Save Prescription'}
           </ThemedText>
@@ -495,7 +505,7 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
   );
 }
 
-const styles = StyleSheet.create({
+const screenStyles = createAutoThemedStyles({
   screen: {
     flex: 1,
     backgroundColor: '#101922',
@@ -744,12 +754,13 @@ const styles = StyleSheet.create({
   },
 });
 
-const webDateInputStyle = {
-  width: '100%',
-  minHeight: 48,
-  border: 'none',
-  outline: 'none',
-  backgroundColor: 'transparent',
-  color: '#EAF3FF',
-  fontSize: 16,
-} as const;
+const getWebDateInputStyle = (mode: 'light' | 'dark') =>
+  ({
+    width: '100%',
+    minHeight: 48,
+    border: 'none',
+    outline: 'none',
+    backgroundColor: 'transparent',
+    color: autoThemeColor('#EAF3FF', mode),
+    fontSize: 16,
+  }) as const;

@@ -1,5 +1,5 @@
 import { useContext, useEffect, useMemo, useState } from 'react';
-import { Alert, Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Image, Pressable, ScrollView, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 
@@ -11,6 +11,11 @@ import { getPatientById } from '@/src/db/patients';
 import { getPrescriptionById } from '@/src/db/prescriptions';
 import type { Prescription } from '@/src/db/types';
 import { createAppBoundaries, deletePrescriptionWithCleanup } from '@/src/services';
+import {
+  createAutoThemedStyles,
+  useAutoThemeColor,
+  useAutoThemedStyles,
+} from '@/src/theme/auto-theme';
 
 type PrescriptionPreview = {
   photoUri: string;
@@ -44,11 +49,23 @@ const formatVisitDate = (value: string): string => {
   });
 };
 
-const DetailItem = ({ icon, label, value }: { icon: keyof typeof MaterialIcons.glyphMap; label: string; value: string }) => {
+const DetailItem = ({
+  icon,
+  label,
+  value,
+  styles,
+  color,
+}: {
+  icon: keyof typeof MaterialIcons.glyphMap;
+  label: string;
+  value: string;
+  styles: any;
+  color: (value: string) => string;
+}) => {
   return (
     <View style={styles.detailRow}>
       <View style={styles.detailIconWrap}>
-        <MaterialIcons name={icon} size={18} color="#137FEC" />
+        <MaterialIcons name={icon} size={18} color={color('#137FEC')} />
       </View>
       <View>
         <ThemedText style={styles.detailLabel}>{label}</ThemedText>
@@ -65,6 +82,8 @@ export function PrescriptionDetailScreen({
   onEditPrescription,
   onDeletedPrescription,
 }: PrescriptionDetailScreenProps) {
+  const styles = useAutoThemedStyles(screenStyles);
+  const color = useAutoThemeColor();
   const insets = useContext(SafeAreaInsetsContext) ?? {
     top: 0,
     right: 0,
@@ -191,7 +210,7 @@ export function PrescriptionDetailScreen({
     <ThemedView style={styles.container} testID="prescription-detail-screen">
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <Pressable onPress={onBack} hitSlop={10} testID="prescription-detail-back">
-          <MaterialIcons name="arrow-back-ios-new" size={18} color="#D9E6F7" />
+          <MaterialIcons name="arrow-back-ios-new" size={18} color={color('#D9E6F7')} />
         </Pressable>
         <ThemedText style={styles.headerTitle}>Prescription Detail</ThemedText>
         <View style={styles.headerActionSpacer} />
@@ -206,7 +225,7 @@ export function PrescriptionDetailScreen({
             <Pressable onPress={() => setIsFullscreenVisible(true)} testID="prescription-detail-image" style={styles.imageWrap}>
               <Image source={{ uri: resolvedData.photoUri }} style={styles.image} resizeMode="cover" />
               <View style={styles.zoomPill}>
-                <MaterialIcons name="zoom-in" size={12} color="#E7EEF7" />
+                <MaterialIcons name="zoom-in" size={12} color={color('#E7EEF7')} />
                 <ThemedText style={styles.zoomText}>Tap to enlarge</ThemedText>
               </View>
             </Pressable>
@@ -224,20 +243,20 @@ export function PrescriptionDetailScreen({
                   disabled={!prescriptionId}
                   style={styles.actionCirclePrimary}
                 >
-                  <MaterialIcons name="edit" size={16} color="#137FEC" />
+                  <MaterialIcons name="edit" size={16} color={color('#137FEC')} />
                 </Pressable>
                 <Pressable onPress={handleDelete} testID="prescription-detail-delete" disabled={!prescriptionId} style={styles.actionCircleDanger}>
-                  <MaterialIcons name="delete" size={16} color="#E25D66" />
+                  <MaterialIcons name="delete" size={16} color={color('#E25D66')} />
                 </Pressable>
               </View>
             </View>
 
             <View style={styles.detailList}>
-              <DetailItem icon="groups" label="PATIENT" value={resolvedData.patientName ?? 'Unknown patient'} />
-              <DetailItem icon="person" label="DOCTOR" value={resolvedData.doctorName} />
-              <DetailItem icon="health-and-safety" label="SPECIALTY" value={resolvedData.doctorSpecialty ?? 'Not provided'} />
-              <DetailItem icon="medical-information" label="CONDITION" value={resolvedData.condition} />
-              <DetailItem icon="calendar-today" label="VISIT DATE" value={formatVisitDate(resolvedData.visitDate)} />
+              <DetailItem icon="groups" label="PATIENT" value={resolvedData.patientName ?? 'Unknown patient'} styles={styles} color={color} />
+              <DetailItem icon="person" label="DOCTOR" value={resolvedData.doctorName} styles={styles} color={color} />
+              <DetailItem icon="health-and-safety" label="SPECIALTY" value={resolvedData.doctorSpecialty ?? 'Not provided'} styles={styles} color={color} />
+              <DetailItem icon="medical-information" label="CONDITION" value={resolvedData.condition} styles={styles} color={color} />
+              <DetailItem icon="calendar-today" label="VISIT DATE" value={formatVisitDate(resolvedData.visitDate)} styles={styles} color={color} />
             </View>
 
             <View>
@@ -249,7 +268,7 @@ export function PrescriptionDetailScreen({
                   </View>
                 ))}
                 <View style={styles.plusTag}>
-                  <MaterialIcons name="add" size={14} color="#8EA3BE" />
+                  <MaterialIcons name="add" size={14} color={color('#8EA3BE')} />
                 </View>
               </View>
             </View>
@@ -272,7 +291,7 @@ export function PrescriptionDetailScreen({
   );
 }
 
-const styles = StyleSheet.create({
+const screenStyles = createAutoThemedStyles({
   container: {
     flex: 1,
     backgroundColor: '#101922',

@@ -5,7 +5,6 @@ import {
   Pressable,
   RefreshControl,
   ScrollView,
-  StyleSheet,
   View,
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
@@ -17,6 +16,11 @@ import { ThemedView } from '@/components/themed-view';
 import { initializeDb, openDb } from '@/src/db';
 import { deletePatientWithStrategy, listPatients } from '@/src/db/patients';
 import type { Patient, PatientListItem } from '@/src/db/types';
+import {
+  createAutoThemedStyles,
+  useAutoThemeColor,
+  useAutoThemedStyles,
+} from '@/src/theme/auto-theme';
 
 const toPatientTestKey = (name: string): string =>
   name
@@ -26,6 +30,8 @@ const toPatientTestKey = (name: string): string =>
     .replace(/^-+|-+$/g, '');
 
 export function PatientsScreen() {
+  const styles = useAutoThemedStyles(screenStyles);
+  const color = useAutoThemeColor();
   const insets = useContext(SafeAreaInsetsContext) ?? {
     top: 0,
     right: 0,
@@ -138,7 +144,7 @@ export function PatientsScreen() {
           <RefreshControl
             refreshing={isRefreshing}
             onRefresh={() => void refreshPatients()}
-            tintColor="#137FEC"
+            tintColor={color('#137FEC')}
           />
         }
       >
@@ -155,7 +161,7 @@ export function PatientsScreen() {
         </View>
 
         <View style={styles.searchBar}>
-          <MaterialIcons name="search" size={18} color="#7086A8" />
+          <MaterialIcons name="search" size={18} color={color('#7086A8')} />
           <ThemedText style={styles.searchPlaceholder}>Search profiles...</ThemedText>
         </View>
         <Pressable
@@ -168,7 +174,7 @@ export function PatientsScreen() {
 
         {isLoading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator color="#137FEC" />
+            <ActivityIndicator color={color('#137FEC')} />
           </View>
         ) : null}
 
@@ -219,14 +225,14 @@ export function PatientsScreen() {
                         <ThemedText style={styles.cardAge}>Age {patient.age}</ThemedText>
                       ) : null}
                       <ThemedText style={styles.cardMeta}>
-                        <MaterialIcons name="description" size={12} color="#137FEC" />{' '}
+                        <MaterialIcons name="description" size={12} color={color('#137FEC')} />{' '}
                         {patient.prescriptionsCount}{' '}
                         {patient.prescriptionsCount === 1 ? 'Prescription' : 'Prescriptions'}
                       </ThemedText>
                     </View>
                   </Pressable>
                   <View style={styles.cardActions}>
-                    <MaterialIcons name="chevron-right" size={20} color="#415777" />
+                    <MaterialIcons name="chevron-right" size={20} color={color('#415777')} />
                     <Pressable
                       onPress={() => openDeleteModal(patient)}
                       style={({ pressed }) => [styles.deleteButton, pressed && styles.buttonPressed]}
@@ -242,7 +248,7 @@ export function PatientsScreen() {
         ) : null}
 
         <View style={styles.footerBadge}>
-          <MaterialIcons name="verified-user" size={14} color="#5E7290" />
+          <MaterialIcons name="verified-user" size={14} color={color('#5E7290')} />
           <ThemedText style={styles.footerText}>End-to-end local encryption active</ThemedText>
         </View>
       </ScrollView>
@@ -252,7 +258,7 @@ export function PatientsScreen() {
         onPress={() => router.push('/add-edit-prescription?mode=add')}
         testID="patients-add-prescription-cta"
       >
-        <MaterialIcons name="add" size={34} color="#F3F9FF" />
+        <MaterialIcons name="add" size={34} color={color('#F3F9FF')} />
       </Pressable>
 
       <Modal
@@ -332,7 +338,7 @@ export function PatientsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const screenStyles = createAutoThemedStyles({
   container: {
     flex: 1,
     backgroundColor: '#101922',
