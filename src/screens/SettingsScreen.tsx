@@ -5,19 +5,58 @@ import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { createAppBoundaries, exportBackup, importBackup, type BackupImportMode } from '@/src/services';
+import {
+  createAppBoundaries,
+  exportBackup,
+  importBackup,
+  saveBackupToDeviceFiles,
+  type BackupImportMode,
+} from '@/src/services';
 
 type SettingsScreenProps = {
   onExport?: () => Promise<void>;
+  onSaveToDeviceFiles?: () => Promise<void>;
   onRestore?: () => Promise<void>;
 };
 
-export function SettingsScreen({ onExport, onRestore }: SettingsScreenProps = {}) {
+export function SettingsScreen({
+  onExport,
+  onSaveToDeviceFiles,
+  onRestore,
+}: SettingsScreenProps = {}) {
   const insets = useContext(SafeAreaInsetsContext) ?? {
     top: 0,
     right: 0,
     bottom: 0,
     left: 0,
+  };
+
+  const runSaveToDeviceFiles = async () => {
+    if (busy) {
+      return;
+    }
+
+    setBusy(true);
+    try {
+      if (onSaveToDeviceFiles) {
+        await onSaveToDeviceFiles();
+        Alert.alert('Backup Saved', 'Your backup file has been saved to device files.');
+      } else {
+        const result = await saveBackupToDeviceFiles(boundaries);
+        if (!result.deviceFileUri) {
+          Alert.alert('Save Cancelled', 'No folder was selected.');
+        } else {
+          Alert.alert('Backup Saved', 'Your backup file has been saved to device files.');
+        }
+      }
+    } catch (error) {
+      Alert.alert(
+        'Backup Error',
+        error instanceof Error ? error.message : 'Unable to save backup to device files.'
+      );
+    } finally {
+      setBusy(false);
+    }
   };
   const appVersion = Constants.expoConfig?.version ?? 'Unknown';
   const boundaries = useMemo(() => createAppBoundaries(), []);
@@ -98,6 +137,18 @@ export function SettingsScreen({ onExport, onRestore }: SettingsScreenProps = {}
           testID="settings-export-button">
           <ThemedText type="defaultSemiBold" style={styles.buttonText}>
             Export Backup
+          </ThemedText>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          disabled={busy}
+          onPress={() => {
+            void runSaveToDeviceFiles();
+          }}
+          style={({ pressed }) => [styles.buttonSecondary, pressed && !busy ? styles.buttonPressed : undefined]}
+          testID="settings-save-device-files-button">
+          <ThemedText type="default" style={styles.buttonText}>
+            Save Backup to Device Files
           </ThemedText>
         </Pressable>
         <Pressable

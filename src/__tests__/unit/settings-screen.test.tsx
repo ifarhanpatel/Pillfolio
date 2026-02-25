@@ -24,11 +24,14 @@ describe('SettingsScreen', () => {
   it('renders export/restore actions', () => {
     const { getByTestId, getByText } = render(<SettingsScreen />);
     const exportButton = getByTestId('settings-export-button');
+    const saveToDeviceFilesButton = getByTestId('settings-save-device-files-button');
     const restoreButton = getByTestId('settings-restore-button');
 
     expect(getByText('Export Backup')).toBeTruthy();
+    expect(getByText('Save Backup to Device Files')).toBeTruthy();
     expect(getByText('Restore Backup')).toBeTruthy();
     expect(exportButton).toBeEnabled();
+    expect(saveToDeviceFilesButton).toBeEnabled();
     expect(restoreButton).toBeEnabled();
   });
 
@@ -51,6 +54,17 @@ describe('SettingsScreen', () => {
 
     await waitFor(() => {
       expect(onRestore).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('calls save to device files handler', async () => {
+    const onSaveToDeviceFiles = jest.fn(async () => undefined);
+
+    const { getByTestId } = render(<SettingsScreen onSaveToDeviceFiles={onSaveToDeviceFiles} />);
+    fireEvent.press(getByTestId('settings-save-device-files-button'));
+
+    await waitFor(() => {
+      expect(onSaveToDeviceFiles).toHaveBeenCalledTimes(1);
     });
   });
 

@@ -74,6 +74,10 @@ export class MockImageCompressionBoundary implements ImageCompressionBoundary {
 export class MockBackupBoundary implements BackupBoundary {
   public savedBackups: { fileName: string; contents: string }[] = [];
   public sharedFiles: string[] = [];
+  public deviceSavedFiles: { fileUri: string; fileName: string }[] = [];
+  public sourceFileBase64ByUri = new Map<string, string>();
+  public restoredPrescriptionImages: { fileName: string; base64Contents: string }[] = [];
+  public nextDeviceFileUri: string | null = null;
   public pickedUri: string | null = null;
   public fileContentsByUri = new Map<string, string>();
 
@@ -82,6 +86,20 @@ export class MockBackupBoundary implements BackupBoundary {
     const uri = `file://mock-backups/${fileName}`;
     this.fileContentsByUri.set(uri, contents);
     return uri;
+  }
+
+  async readFileAsBase64(fileUri: string): Promise<string> {
+    const contents = this.sourceFileBase64ByUri.get(fileUri);
+    if (!contents) {
+      throw new Error('Source file not found.');
+    }
+
+    return contents;
+  }
+
+  async savePrescriptionImageFromBase64(fileName: string, base64Contents: string): Promise<string> {
+    this.restoredPrescriptionImages.push({ fileName, base64Contents });
+    return `file://mock-storage/prescriptions/${fileName}`;
   }
 
   async pickBackupFile(): Promise<string | null> {
@@ -99,6 +117,15 @@ export class MockBackupBoundary implements BackupBoundary {
 
   async shareFile(fileUri: string): Promise<void> {
     this.sharedFiles.push(fileUri);
+  }
+
+  async saveToDeviceFiles(fileUri: string, fileName: string): Promise<string | null> {
+    this.deviceSavedFiles.push({ fileUri, fileName });
+    if (this.nextDeviceFileUri !== null) {
+      return this.nextDeviceFileUri;
+    }
+
+    return `file://mock-device-files/${fileName}`;
   }
 }
 

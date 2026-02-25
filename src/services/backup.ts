@@ -3,11 +3,18 @@ import { searchPrescriptions } from '../db/prescriptions';
 import type { Patient, Prescription } from '../db/types';
 import type { AppBoundaries } from './boundaries';
 
+export type BackupPrescriptionImage = {
+  prescriptionId: string;
+  fileName: string;
+  base64Contents: string;
+};
+
 export type BackupSnapshot = {
   version: 1;
   exportedAt: string;
   patients: Patient[];
   prescriptions: Prescription[];
+  prescriptionImages?: BackupPrescriptionImage[];
 };
 
 export type BackupImportMode = 'replace' | 'merge';
@@ -17,8 +24,28 @@ export type BackupImportResult = {
   importedPrescriptions: number;
 };
 
+export type BackupExportResult = {
+  fileUri: string;
+};
+
+export type DeviceFilesBackupExportResult = BackupExportResult & {
+  deviceFileUri: string | null;
+};
+
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
+
+const isBackupPrescriptionImage = (value: unknown): value is BackupPrescriptionImage => {
+  if (!isObject(value)) {
+    return false;
+  }
+
+  return (
+    typeof value.prescriptionId === 'string' &&
+    typeof value.fileName === 'string' &&
+    typeof value.base64Contents === 'string'
+  );
+};
 
 const isBackupSnapshot = (value: unknown): value is BackupSnapshot => {
   if (!isObject(value)) {
@@ -29,8 +56,21 @@ const isBackupSnapshot = (value: unknown): value is BackupSnapshot => {
     value.version === 1 &&
     typeof value.exportedAt === 'string' &&
     Array.isArray(value.patients) &&
-    Array.isArray(value.prescriptions)
+    Array.isArray(value.prescriptions) &&
+    (value.prescriptionImages === undefined ||
+      (Array.isArray(value.prescriptionImages) &&
+        value.prescriptionImages.every((image) => isBackupPrescriptionImage(image))))
   );
+};
+
+const toSafeFileName = (fileName: string): string => fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
+
+const getBackupImageFileName = (prescription: Prescription): string => {
+  const sanitizedSource = prescription.photoUri.split(/[?#]/, 1)[0] ?? '';
+  const candidate = sanitizedSource.slice(sanitizedSource.lastIndexOf('/') + 1);
+  const extensionMatch = candidate.match(/\.([a-zA-Z0-9]+)$/);
+  const extension = extensionMatch?.[1]?.toLowerCase() ?? 'jpg';
+  return toSafeFileName(`prescription-${prescription.id}.${extension}`);
 };
 
 const clearExistingData = async (boundaries: AppBoundaries): Promise<void> => {
@@ -46,7 +86,10 @@ const clearExistingData = async (boundaries: AppBoundaries): Promise<void> => {
   }
 };
 
-export const exportBackup = async (boundaries: AppBoundaries): Promise<{ fileUri: string }> => {
+const createBackupSnapshotFile = async (boundaries: AppBoundaries): Promise<{
+  fileName: string;
+  fileUri: string;
+}> => {
   const driver = await boundaries.db.open();
   await boundaries.db.initialize(driver);
 
@@ -57,12 +100,45 @@ export const exportBackup = async (boundaries: AppBoundaries): Promise<{ fileUri
     prescriptions: await searchPrescriptions(driver, { searchAllPatients: true }),
   };
 
+  const prescriptionImages: BackupPrescriptionImage[] = [];
+  for (const prescription of snapshot.prescriptions) {
+    try {
+      const base64Contents = await boundaries.backup.readFileAsBase64(prescription.photoUri);
+      prescriptionImages.push({
+        prescriptionId: prescription.id,
+        fileName: getBackupImageFileName(prescription),
+        base64Contents,
+      });
+    } catch {
+      // Keep exporting structured data even if a local image file is missing.
+    }
+  }
+
+  if (prescriptionImages.length > 0) {
+    snapshot.prescriptionImages = prescriptionImages;
+  }
+
   const fileName = `pillfolio-backup-${snapshot.exportedAt.replace(/[:.]/g, '-')}.json`;
   const contents = JSON.stringify(snapshot, null, 2);
   const fileUri = await boundaries.backup.saveBackupFile(fileName, contents);
+
+  return { fileName, fileUri };
+};
+
+export const exportBackup = async (boundaries: AppBoundaries): Promise<BackupExportResult> => {
+  const { fileUri } = await createBackupSnapshotFile(boundaries);
   await boundaries.backup.shareFile(fileUri);
 
   return { fileUri };
+};
+
+export const saveBackupToDeviceFiles = async (
+  boundaries: AppBoundaries
+): Promise<DeviceFilesBackupExportResult> => {
+  const { fileName, fileUri } = await createBackupSnapshotFile(boundaries);
+  const deviceFileUri = await boundaries.backup.saveToDeviceFiles(fileUri, fileName);
+
+  return { fileUri, deviceFileUri };
 };
 
 export const importBackup = async (
@@ -81,6 +157,11 @@ export const importBackup = async (
   const payload: unknown = JSON.parse(rawContents);
   if (!isBackupSnapshot(payload)) {
     throw new Error('Invalid backup file format.');
+  }
+
+  const imageByPrescriptionId = new Map<string, BackupPrescriptionImage>();
+  for (const image of payload.prescriptionImages ?? []) {
+    imageByPrescriptionId.set(image.prescriptionId, image);
   }
 
   const driver = await boundaries.db.open();
@@ -128,6 +209,15 @@ export const importBackup = async (
   }
 
   for (const prescription of payload.prescriptions) {
+    let restoredPhotoUri = prescription.photoUri;
+    const backupImage = imageByPrescriptionId.get(prescription.id);
+    if (backupImage) {
+      restoredPhotoUri = await boundaries.backup.savePrescriptionImageFromBase64(
+        backupImage.fileName,
+        backupImage.base64Contents
+      );
+    }
+
     if (mode === 'merge') {
       const existing = await driver.getFirstAsync<{ id: string }>('SELECT * FROM prescriptions WHERE id = ?;', [
         prescription.id,
@@ -142,7 +232,7 @@ export const importBackup = async (
       [
         prescription.id,
         prescription.patientId,
-        prescription.photoUri,
+        restoredPhotoUri,
         prescription.doctorName,
         prescription.doctorSpecialty,
         prescription.condition,

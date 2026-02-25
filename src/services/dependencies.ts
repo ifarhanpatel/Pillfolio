@@ -3,6 +3,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import * as Sharing from 'expo-sharing';
+import { Platform } from 'react-native';
 
 import { STORAGE_DIRS } from '../constants/app';
 import { initializeDb, openDb } from '../db';
@@ -180,6 +181,27 @@ const defaultBackupBoundary: BackupBoundary = {
 
     return destinationUri;
   },
+  async readFileAsBase64(fileUri: string): Promise<string> {
+    return FileSystem.readAsStringAsync(fileUri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+  },
+  async savePrescriptionImageFromBase64(fileName: string, base64Contents: string): Promise<string> {
+    const baseDirectory = resolveBaseDirectory(FileSystem as unknown as Record<string, unknown>);
+    if (!baseDirectory) {
+      throw new Error('No writable app directory is available.');
+    }
+
+    const prescriptionsDirectory = joinUri(baseDirectory, STORAGE_DIRS.prescriptions);
+    await FileSystem.makeDirectoryAsync(prescriptionsDirectory, { intermediates: true });
+
+    const destinationUri = joinUri(prescriptionsDirectory, fileName.replace(/[^a-zA-Z0-9._-]/g, '_'));
+    await FileSystem.writeAsStringAsync(destinationUri, base64Contents, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+
+    return destinationUri;
+  },
   async pickBackupFile(): Promise<string | null> {
     const result = await DocumentPicker.getDocumentAsync({
       copyToCacheDirectory: true,
@@ -197,6 +219,45 @@ const defaultBackupBoundary: BackupBoundary = {
     return FileSystem.readAsStringAsync(fileUri, {
       encoding: FileSystem.EncodingType.UTF8,
     });
+  },
+  async saveToDeviceFiles(fileUri: string, fileName: string): Promise<string | null> {
+    const safeFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
+
+    if (Platform.OS === 'android' && FileSystem.StorageAccessFramework) {
+      const permission =
+        await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync(null);
+
+      if (!permission.granted || !permission.directoryUri) {
+        return null;
+      }
+
+      const fileNameWithoutExtension = safeFileName.replace(/\.json$/i, '');
+      const destinationUri = await FileSystem.StorageAccessFramework.createFileAsync(
+        permission.directoryUri,
+        fileNameWithoutExtension,
+        'application/json'
+      );
+      const contents = await FileSystem.readAsStringAsync(fileUri, {
+        encoding: FileSystem.EncodingType.UTF8,
+      });
+      await FileSystem.StorageAccessFramework.writeAsStringAsync(destinationUri, contents, {
+        encoding: FileSystem.EncodingType.UTF8,
+      });
+
+      return destinationUri;
+    }
+
+    const canShare = await Sharing.isAvailableAsync();
+    if (!canShare) {
+      throw new Error('Saving to device files is not available on this device.');
+    }
+
+    await Sharing.shareAsync(fileUri, {
+      mimeType: 'application/json',
+      dialogTitle: 'Save Pillfolio backup to Files',
+      UTI: 'public.json',
+    });
+    return fileUri;
   },
   async shareFile(fileUri: string): Promise<void> {
     const canShare = await Sharing.isAvailableAsync();

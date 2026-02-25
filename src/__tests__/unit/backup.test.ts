@@ -3,6 +3,7 @@ import { createPrescription, getPrescriptionById } from '../../db/prescriptions'
 import {
   exportBackup,
   importBackup,
+  saveBackupToDeviceFiles,
   type BackupImportMode,
   type BackupSnapshot,
 } from '../../services/backup';
@@ -35,6 +36,7 @@ describe('backup service', () => {
     const { boundaries, mocks } = createTestBoundaries();
     const driver = mocks.db.driver as FakeDriver;
     await createSeedData(driver);
+    mocks.backup.sourceFileBase64ByUri.set('file://stored/photo-1.jpg', 'aW1hZ2UtMQ==');
 
     const result = await exportBackup(boundaries);
 
@@ -46,6 +48,28 @@ describe('backup service', () => {
     expect(saved.version).toBe(1);
     expect(saved.patients).toHaveLength(1);
     expect(saved.prescriptions).toHaveLength(1);
+    expect(saved.prescriptionImages).toEqual([
+      {
+        prescriptionId: saved.prescriptions[0].id,
+        fileName: `prescription-${saved.prescriptions[0].id}.jpg`,
+        base64Contents: 'aW1hZ2UtMQ==',
+      },
+    ]);
+  });
+
+  test('saveBackupToDeviceFiles persists snapshot JSON and saves to device files', async () => {
+    const { boundaries, mocks } = createTestBoundaries();
+    const driver = mocks.db.driver as FakeDriver;
+    await createSeedData(driver);
+
+    const result = await saveBackupToDeviceFiles(boundaries);
+
+    expect(result.fileUri).toContain('pillfolio-backup-');
+    expect(mocks.backup.savedBackups).toHaveLength(1);
+    expect(mocks.backup.sharedFiles).toEqual([]);
+    expect(mocks.backup.deviceSavedFiles).toHaveLength(1);
+    expect(mocks.backup.deviceSavedFiles[0].fileUri).toBe(result.fileUri);
+    expect(result.deviceFileUri).toContain('file://mock-device-files/pillfolio-backup-');
   });
 
   test.each<BackupImportMode>(['replace', 'merge'])(
@@ -95,6 +119,13 @@ describe('backup service', () => {
             updatedAt: '2026-01-08T00:00:00.000Z',
           },
         ],
+        prescriptionImages: [
+          {
+            prescriptionId: 'rx-1',
+            fileName: 'rx-1.jpg',
+            base64Contents: 'cmVzdG9yZWQtaW1hZ2U=',
+          },
+        ],
       };
       mocks.backup.pickedUri = 'file://picked/backup.json';
       mocks.backup.fileContentsByUri.set('file://picked/backup.json', JSON.stringify(backupPayload));
@@ -106,6 +137,11 @@ describe('backup service', () => {
       expect(driver.patients.find((row) => row.id === patient.id)?.name).toBe('Jane Updated');
       const importedRx = await getPrescriptionById(driver, 'rx-1');
       expect(importedRx?.doctorName).toBe('Dr. Merge');
+      expect(importedRx?.photoUri).toBe('file://mock-storage/prescriptions/rx-1.jpg');
+      expect(mocks.backup.restoredPrescriptionImages).toContainEqual({
+        fileName: 'rx-1.jpg',
+        base64Contents: 'cmVzdG9yZWQtaW1hZ2U=',
+      });
     }
   );
 

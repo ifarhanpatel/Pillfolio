@@ -30,6 +30,9 @@ export interface ClockBoundary {
 
 export interface BackupBoundary {
   saveBackupFile(fileName: string, contents: string): Promise<string>;
+  readFileAsBase64(fileUri: string): Promise<string>;
+  savePrescriptionImageFromBase64(fileName: string, base64Contents: string): Promise<string>;
+  saveToDeviceFiles(fileUri: string, fileName: string): Promise<string | null>;
   pickBackupFile(): Promise<string | null>;
   readBackupFile(fileUri: string): Promise<string>;
   shareFile(fileUri: string): Promise<void>;
