@@ -1,6 +1,6 @@
 import Constants from 'expo-constants';
 import { useContext, useMemo, useState } from 'react';
-import { Alert, Pressable } from 'react-native';
+import { Alert, Pressable, ScrollView } from 'react-native';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -125,155 +125,165 @@ export function SettingsScreen({
   };
 
   return (
-    <ThemedView style={[styles.container, { paddingTop: insets.top + 8 }]} testID="settings-screen">
-      <ThemedText type="title" style={styles.pageTitle}>
-        {t('settings.title')}
-      </ThemedText>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={[styles.contentContainer, { paddingTop: insets.top + 8, paddingBottom: insets.bottom + 20 }]}
+      testID="settings-screen">
+      <ThemedView style={styles.innerContainer}>
+        <ThemedText type="title" style={styles.pageTitle}>
+          {t('settings.title')}
+        </ThemedText>
 
-      <ThemedView style={styles.section} testID="settings-appearance">
-        <ThemedText type="subtitle" style={styles.sectionTitle}>
-          Appearance
-        </ThemedText>
-        <ThemedText type="default" style={styles.bodyText} testID="settings-theme-selected">
-          Theme: {preference === 'system' ? `System (${systemColorScheme})` : preference}
-        </ThemedText>
-        <ThemedView style={styles.toggleRow}>
-          {THEME_OPTIONS.map((option) => {
-            const selected = option.value === preference;
-            return (
-              <Pressable
-                key={option.value}
-                accessibilityRole="button"
-                onPress={() => setPreference(option.value)}
-                style={({ pressed }) => [
-                  styles.themeOption,
-                  selected && styles.themeOptionSelected,
-                  pressed && styles.buttonPressed,
-                ]}
-                testID={`settings-theme-${option.value}-button`}>
-                <ThemedText
-                  type="defaultSemiBold"
-                  style={[styles.themeOptionText, selected && styles.themeOptionTextSelected]}>
-                  {option.label}
-                </ThemedText>
-              </Pressable>
-            );
-          })}
+        <ThemedView style={styles.section} testID="settings-appearance">
+          <ThemedText type="subtitle" style={styles.sectionTitle}>
+            Appearance
+          </ThemedText>
+          <ThemedText type="default" style={styles.bodyText} testID="settings-theme-selected">
+            Theme: {preference === 'system' ? `System (${systemColorScheme})` : preference}
+          </ThemedText>
+          <ThemedView style={styles.toggleRow}>
+            {THEME_OPTIONS.map((option) => {
+              const selected = option.value === preference;
+              return (
+                <Pressable
+                  key={option.value}
+                  accessibilityRole="button"
+                  onPress={() => setPreference(option.value)}
+                  style={({ pressed }) => [
+                    styles.themeOption,
+                    selected && styles.themeOptionSelected,
+                    pressed && styles.buttonPressed,
+                  ]}
+                  testID={`settings-theme-${option.value}-button`}>
+                  <ThemedText
+                    type="defaultSemiBold"
+                    style={[styles.themeOptionText, selected && styles.themeOptionTextSelected]}>
+                    {option.label}
+                  </ThemedText>
+                </Pressable>
+              );
+            })}
+          </ThemedView>
+        </ThemedView>
+
+        <ThemedView style={styles.section} testID="settings-language">
+          <ThemedText type="subtitle" style={styles.sectionTitle}>
+            {t('settings.languageTitle')}
+          </ThemedText>
+          <ThemedText type="default" style={styles.bodyText} testID="settings-language-current">
+            {t('settings.languageCurrent', {
+              language: APP_LOCALE_OPTIONS.find((option) => option.code === locale)?.label ?? locale,
+            })}
+          </ThemedText>
+          <ThemedView style={styles.languageList}>
+            {APP_LOCALE_OPTIONS.map((option) => {
+              const selected = option.code === locale;
+              return (
+                <Pressable
+                  key={option.code}
+                  onPress={() => void setLocale(option.code)}
+                  style={[styles.languageButton, selected && styles.languageButtonSelected]}
+                  testID={`settings-language-option-${option.code}`}>
+                  <ThemedText
+                    style={[styles.languageButtonText, selected && styles.languageButtonTextSelected]}>
+                    {t('settings.languageOptionLabel', {
+                      nativeLabel: option.nativeLabel,
+                      label: option.label,
+                    })}
+                  </ThemedText>
+                </Pressable>
+              );
+            })}
+          </ThemedView>
+        </ThemedView>
+
+        <ThemedView style={styles.section} testID="settings-privacy">
+          <ThemedText type="subtitle" style={styles.sectionTitle}>
+            {t('settings.privacyTitle')}
+          </ThemedText>
+          <ThemedText type="default" style={styles.bodyText}>
+            {t('settings.privacyBody')}
+          </ThemedText>
+        </ThemedView>
+
+        <ThemedView style={styles.section} testID="settings-backup">
+          <ThemedText type="subtitle" style={styles.sectionTitle}>
+            {t('settings.backupTitle')}
+          </ThemedText>
+          <Pressable
+            accessibilityRole="button"
+            disabled={busy}
+            onPress={() => {
+              void runExport();
+            }}
+            style={({ pressed }) => [styles.button, pressed && !busy ? styles.buttonPressed : undefined]}
+            testID="settings-export-button">
+            <ThemedText type="defaultSemiBold" style={styles.buttonText}>
+              Export Backup
+            </ThemedText>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            disabled={busy}
+            onPress={() => {
+              void runSaveToDeviceFiles();
+            }}
+            style={({ pressed }) => [styles.buttonSecondary, pressed && !busy ? styles.buttonPressed : undefined]}
+            testID="settings-save-device-files-button">
+            <ThemedText type="default" style={styles.buttonText}>
+              Save Backup to Device Files
+            </ThemedText>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            disabled={busy}
+            onPress={() => {
+              void runRestore('replace');
+            }}
+            style={({ pressed }) => [styles.button, pressed && !busy ? styles.buttonPressed : undefined]}
+            testID="settings-restore-button">
+            <ThemedText type="defaultSemiBold" style={styles.buttonText}>
+              Restore Backup
+            </ThemedText>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            disabled={busy}
+            onPress={() => {
+              void runRestore('merge');
+            }}
+            style={({ pressed }) => [styles.buttonSecondary, pressed && !busy ? styles.buttonPressed : undefined]}
+            testID="settings-restore-merge-button">
+            <ThemedText type="default" style={styles.buttonText}>
+              Restore Backup (Merge)
+            </ThemedText>
+          </Pressable>
+        </ThemedView>
+
+        <ThemedView style={styles.section} testID="settings-about">
+          <ThemedText type="subtitle" style={styles.sectionTitle}>
+            {t('settings.aboutTitle')}
+          </ThemedText>
+          <ThemedText type="default" style={styles.bodyText} testID="settings-version">
+            {t('settings.versionLabel', { version: appVersion })}
+          </ThemedText>
         </ThemedView>
       </ThemedView>
-
-      <ThemedView style={styles.section} testID="settings-language">
-        <ThemedText type="subtitle" style={styles.sectionTitle}>
-          {t('settings.languageTitle')}
-        </ThemedText>
-        <ThemedText type="default" style={styles.bodyText} testID="settings-language-current">
-          {t('settings.languageCurrent', {
-            language: APP_LOCALE_OPTIONS.find((option) => option.code === locale)?.label ?? locale,
-          })}
-        </ThemedText>
-        <ThemedView style={styles.languageList}>
-          {APP_LOCALE_OPTIONS.map((option) => {
-            const selected = option.code === locale;
-            return (
-              <Pressable
-                key={option.code}
-                onPress={() => void setLocale(option.code)}
-                style={[styles.languageButton, selected && styles.languageButtonSelected]}
-                testID={`settings-language-option-${option.code}`}>
-                <ThemedText
-                  style={[styles.languageButtonText, selected && styles.languageButtonTextSelected]}>
-                  {t('settings.languageOptionLabel', {
-                    nativeLabel: option.nativeLabel,
-                    label: option.label,
-                  })}
-                </ThemedText>
-              </Pressable>
-            );
-          })}
-        </ThemedView>
-      </ThemedView>
-
-      <ThemedView style={styles.section} testID="settings-privacy">
-        <ThemedText type="subtitle" style={styles.sectionTitle}>
-          {t('settings.privacyTitle')}
-        </ThemedText>
-        <ThemedText type="default" style={styles.bodyText}>
-          {t('settings.privacyBody')}
-        </ThemedText>
-      </ThemedView>
-
-      <ThemedView style={styles.section} testID="settings-backup">
-        <ThemedText type="subtitle" style={styles.sectionTitle}>
-          {t('settings.backupTitle')}
-        </ThemedText>
-        <Pressable
-          accessibilityRole="button"
-          disabled={busy}
-          onPress={() => {
-            void runExport();
-          }}
-          style={({ pressed }) => [styles.button, pressed && !busy ? styles.buttonPressed : undefined]}
-          testID="settings-export-button">
-          <ThemedText type="defaultSemiBold" style={styles.buttonText}>
-            Export Backup
-          </ThemedText>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          disabled={busy}
-          onPress={() => {
-            void runSaveToDeviceFiles();
-          }}
-          style={({ pressed }) => [styles.buttonSecondary, pressed && !busy ? styles.buttonPressed : undefined]}
-          testID="settings-save-device-files-button">
-          <ThemedText type="default" style={styles.buttonText}>
-            Save Backup to Device Files
-          </ThemedText>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          disabled={busy}
-          onPress={() => {
-            void runRestore('replace');
-          }}
-          style={({ pressed }) => [styles.button, pressed && !busy ? styles.buttonPressed : undefined]}
-          testID="settings-restore-button">
-          <ThemedText type="defaultSemiBold" style={styles.buttonText}>
-            Restore Backup
-          </ThemedText>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          disabled={busy}
-          onPress={() => {
-            void runRestore('merge');
-          }}
-          style={({ pressed }) => [styles.buttonSecondary, pressed && !busy ? styles.buttonPressed : undefined]}
-          testID="settings-restore-merge-button">
-          <ThemedText type="default" style={styles.buttonText}>
-            Restore Backup (Merge)
-          </ThemedText>
-        </Pressable>
-      </ThemedView>
-
-      <ThemedView style={styles.section} testID="settings-about">
-        <ThemedText type="subtitle" style={styles.sectionTitle}>
-          {t('settings.aboutTitle')}
-        </ThemedText>
-        <ThemedText type="default" style={styles.bodyText} testID="settings-version">
-          {t('settings.versionLabel', { version: appVersion })}
-        </ThemedText>
-      </ThemedView>
-    </ThemedView>
+    </ScrollView>
   );
 }
 
 const screenStyles = createAutoThemedStyles({
   container: {
     flex: 1,
-    padding: 20,
-    gap: 12,
     backgroundColor: '#07101D',
+  },
+  contentContainer: {
+    paddingHorizontal: 20,
+  },
+  innerContainer: {
+    gap: 12,
+    backgroundColor: 'transparent',
   },
   pageTitle: {
     color: '#EAF3FF',
@@ -296,10 +306,14 @@ const screenStyles = createAutoThemedStyles({
     color: '#A9C1DB',
   },
   languageList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
     backgroundColor: 'transparent',
   },
   languageButton: {
+    flexBasis: '48%',
+    flexGrow: 1,
     borderWidth: 1,
     borderColor: '#2F4E6F',
     borderRadius: 10,
