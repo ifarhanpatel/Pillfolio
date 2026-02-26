@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { StyleSheet } from 'react-native';
+import type { ImageStyle, TextStyle, ViewStyle } from 'react-native';
 
 import { useAppColorScheme } from '@/src/theme/theme-preference';
 
@@ -9,6 +10,8 @@ type ThemedStyles<T> = {
   dark: T;
   light: T;
 };
+
+type RNNamedStyles<T> = { [K in keyof T]: ViewStyle | TextStyle | ImageStyle };
 
 const EXACT_LIGHT_COLOR_MAP: Record<string, string> = {
   '#137fec': '#0f6ccd',
@@ -259,13 +262,13 @@ const transformNode = <T,>(node: T, mode: ThemeMode): T => {
   return node;
 };
 
-export const createAutoThemedStyles = <T extends Record<string, any>>(
+export const createAutoThemedStyles = <T extends RNNamedStyles<T>>(
   darkStyles: T
 ): ThemedStyles<T> => {
-  const lightStyles = transformNode(darkStyles, 'light');
+  const lightStyles = transformNode(darkStyles, 'light') as T;
   return {
-    dark: StyleSheet.create(darkStyles as any) as T,
-    light: StyleSheet.create(lightStyles as any) as T,
+    dark: StyleSheet.create(darkStyles),
+    light: StyleSheet.create(lightStyles),
   };
 };
 
