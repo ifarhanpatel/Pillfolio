@@ -1,6 +1,7 @@
 import { Image, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { useTranslation } from '@/src/i18n/LocaleProvider';
 
 type FullscreenImageViewerProps = {
   visible: boolean;
@@ -13,6 +14,8 @@ export function FullscreenImageViewer({
   imageUri,
   onClose,
 }: FullscreenImageViewerProps) {
+  const { t } = useTranslation();
+
   return (
     <Modal
       visible={visible}
@@ -23,7 +26,7 @@ export function FullscreenImageViewer({
       <View style={styles.overlay} testID="prescription-image-fullscreen">
         <Pressable onPress={onClose} style={styles.closeButton} testID="prescription-image-close">
           <ThemedText type="defaultSemiBold" darkColor="#FFFFFF" lightColor="#FFFFFF">
-            Close
+            {t('prescriptionDetail.fullscreenClose')}
           </ThemedText>
         </Pressable>
         <ScrollView

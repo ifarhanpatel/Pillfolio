@@ -73,11 +73,11 @@ describe("prescriptionFlow", () => {
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.errors).toMatchObject({
-        photoUri: "Photo is required.",
-        doctorName: "Doctor name is required.",
-        condition: "Condition is required.",
-        tags: "At least one tag is required.",
-        visitDate: "Visit date is required.",
+        photoUri: "validation.photo_required",
+        doctorName: "validation.doctor_name_required",
+        condition: "validation.condition_required",
+        tags: "validation.tags_required",
+        visitDate: "validation.visit_date_required",
       });
     }
 

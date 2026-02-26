@@ -1,5 +1,6 @@
-import { fireEvent, render } from '@testing-library/react-native';
+import { fireEvent } from '@testing-library/react-native';
 
+import { renderWithI18n } from '@/src/__tests__/helpers/renderWithI18n';
 import { SettingsScreen } from '@/src/screens/SettingsScreen';
 import { ThemePreferenceProvider } from '@/src/theme/theme-preference';
 
@@ -24,7 +25,7 @@ jest.mock('expo-file-system/legacy', () => ({
 
 describe('SettingsScreen', () => {
   it('renders privacy warning and about section', () => {
-    const { getByText, getByTestId } = render(<SettingsScreen />);
+    const { getByText, getByTestId } = renderWithI18n(<SettingsScreen />);
 
     expect(getByText('Settings')).toBeTruthy();
     expect(getByTestId('settings-privacy')).toBeTruthy();
@@ -33,7 +34,7 @@ describe('SettingsScreen', () => {
   });
 
   it('renders appearance controls and allows manual theme selection', () => {
-    const { getByTestId } = render(
+    const { getByTestId } = renderWithI18n(
       <ThemePreferenceProvider>
         <SettingsScreen />
       </ThemePreferenceProvider>
@@ -50,7 +51,7 @@ describe('SettingsScreen', () => {
   });
 
   it('renders disabled export/backup placeholder', () => {
-    const { getByTestId, getByText } = render(<SettingsScreen />);
+    const { getByTestId, getByText } = renderWithI18n(<SettingsScreen />);
     const button = getByTestId('settings-export-button');
 
     expect(getByText('Export/Backup (Coming Soon)')).toBeTruthy();
@@ -58,8 +59,17 @@ describe('SettingsScreen', () => {
   });
 
   it('renders app version', () => {
-    const { getByTestId } = render(<SettingsScreen />);
+    const { getByTestId } = renderWithI18n(<SettingsScreen />);
 
     expect(getByTestId('settings-version')).toHaveTextContent('App Version: 1.2.3');
+  });
+
+  it('changes language selection', async () => {
+    const { getByTestId, findByText } = renderWithI18n(<SettingsScreen />);
+
+    fireEvent.press(getByTestId('settings-language-option-hi'));
+
+    expect(getByTestId('settings-language-current')).toBeTruthy();
+    await findByText('सेटिंग्स');
   });
 });

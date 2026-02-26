@@ -1,11 +1,12 @@
 describe("Patient CRUD flows", () => {
   beforeEach(async () => {
     await device.launchApp({ newInstance: true, delete: true });
+    await waitFor(element(by.id("patients-screen"))).toBeVisible().withTimeout(20000);
   });
 
   it("creates and edits a patient", async () => {
     await element(by.id("patients-cta")).tap();
-    await expect(element(by.id("patient-form-screen"))).toBeVisible();
+    await waitFor(element(by.id("patient-form-name-input"))).toBeVisible().withTimeout(10000);
 
     await element(by.id("patient-form-name-input")).replaceText("Alex");
     await element(by.id("patient-form-relationship-input")).replaceText("Self");
@@ -15,7 +16,7 @@ describe("Patient CRUD flows", () => {
     await expect(element(by.text("Alex"))).toBeVisible();
 
     await element(by.id("patient-edit-alex")).tap();
-    await expect(element(by.id("patient-form-screen"))).toBeVisible();
+    await waitFor(element(by.id("patient-form-name-input"))).toBeVisible().withTimeout(10000);
     await element(by.id("patient-form-name-input")).replaceText("Alex Updated");
     await element(by.id("patient-form-save-button")).tap();
 

@@ -10,6 +10,7 @@ import { initializeDb, openDb } from '@/src/db';
 import { getPatientById } from '@/src/db/patients';
 import { getPrescriptionById } from '@/src/db/prescriptions';
 import type { Prescription } from '@/src/db/types';
+import { useAppLocale, useTranslation } from '@/src/i18n/LocaleProvider';
 import { createAppBoundaries, deletePrescriptionWithCleanup } from '@/src/services';
 import {
   createAutoThemedStyles,
@@ -36,13 +37,13 @@ type PrescriptionDetailScreenProps = {
   onDeletedPrescription?: () => void;
 };
 
-const formatVisitDate = (value: string): string => {
+const formatVisitDate = (value: string, locale: string): string => {
   const parsed = new Date(`${value}T00:00:00`);
   if (Number.isNaN(parsed.getTime())) {
     return value;
   }
 
-  return parsed.toLocaleDateString(undefined, {
+  return parsed.toLocaleDateString(locale, {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
@@ -84,6 +85,8 @@ export function PrescriptionDetailScreen({
 }: PrescriptionDetailScreenProps) {
   const styles = useAutoThemedStyles(screenStyles);
   const color = useAutoThemeColor();
+  const { t } = useTranslation();
+  const { locale } = useAppLocale();
   const insets = useContext(SafeAreaInsetsContext) ?? {
     top: 0,
     right: 0,
@@ -121,7 +124,7 @@ export function PrescriptionDetailScreen({
         }
 
         if (!loadedPrescription) {
-          setErrorMessage('Prescription not found.');
+          setErrorMessage(t('prescriptionForm.notFound'));
           setPrescription(null);
           setPatientName(null);
           return;
@@ -137,7 +140,7 @@ export function PrescriptionDetailScreen({
 
         setPrescription(null);
         setPatientName(null);
-        setErrorMessage('Unable to load prescription detail.');
+        setErrorMessage(t('prescriptionDetail.loadFailed'));
       } finally {
         if (mounted) {
           setIsLoading(false);
@@ -150,7 +153,7 @@ export function PrescriptionDetailScreen({
     return () => {
       mounted = false;
     };
-  }, [prescriptionId]);
+  }, [prescriptionId, t]);
 
   const resolvedData = useMemo(() => {
     if (prescription) {
@@ -183,22 +186,22 @@ export function PrescriptionDetailScreen({
       return;
     }
 
-    Alert.alert('Delete prescription?', 'This action cannot be undone.', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('prescriptionDetail.deleteConfirmTitle'), t('prescriptionDetail.deleteConfirmBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Delete',
+        text: t('common.delete'),
         style: 'destructive',
         onPress: () => {
           void (async () => {
             try {
               const deleted = await deletePrescriptionWithCleanup(boundaries, prescriptionId);
               if (!deleted) {
-                setErrorMessage('Prescription not found.');
+                setErrorMessage(t('prescriptionForm.notFound'));
                 return;
               }
               onDeletedPrescription?.();
             } catch {
-              setErrorMessage('Unable to delete prescription.');
+              setErrorMessage(t('prescriptionDetail.deleteFailed'));
             }
           })();
         },
@@ -212,12 +215,12 @@ export function PrescriptionDetailScreen({
         <Pressable onPress={onBack} hitSlop={10} testID="prescription-detail-back">
           <MaterialIcons name="arrow-back-ios-new" size={18} color={color('#D9E6F7')} />
         </Pressable>
-        <ThemedText style={styles.headerTitle}>Prescription Detail</ThemedText>
+        <ThemedText style={styles.headerTitle}>{t('prescriptionDetail.title')}</ThemedText>
         <View style={styles.headerActionSpacer} />
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {isLoading ? <ThemedText style={styles.helper}>Loading prescription...</ThemedText> : null}
+        {isLoading ? <ThemedText style={styles.helper}>{t('prescriptionDetail.loading')}</ThemedText> : null}
         {errorMessage ? <ThemedText style={styles.error}>{errorMessage}</ThemedText> : null}
 
         {resolvedData ? (
@@ -226,15 +229,16 @@ export function PrescriptionDetailScreen({
               <Image source={{ uri: resolvedData.photoUri }} style={styles.image} resizeMode="cover" />
               <View style={styles.zoomPill}>
                 <MaterialIcons name="zoom-in" size={12} color={color('#E7EEF7')} />
-                <ThemedText style={styles.zoomText}>Tap to enlarge</ThemedText>
+                <MaterialIcons name="zoom-in" size={12} color={color('#E7EEF7')} />
+                <ThemedText style={styles.zoomText}>{t('prescriptionDetail.imageZoom')}</ThemedText>
               </View>
             </Pressable>
             <View style={styles.recordHead}>
               <View>
                 <ThemedText type="subtitle" style={styles.recordTitle}>
-                  Clinical Record
+                  {t('prescriptionDetail.recordTitle')}
                 </ThemedText>
-                <ThemedText style={styles.recordSub}>Last updated 2 days ago</ThemedText>
+                <ThemedText style={styles.recordSub}>{t('prescriptionDetail.recordSub')}</ThemedText>
               </View>
               <View style={styles.recordActions}>
                 <Pressable
@@ -252,15 +256,15 @@ export function PrescriptionDetailScreen({
             </View>
 
             <View style={styles.detailList}>
-              <DetailItem icon="groups" label="PATIENT" value={resolvedData.patientName ?? 'Unknown patient'} styles={styles} color={color} />
-              <DetailItem icon="person" label="DOCTOR" value={resolvedData.doctorName} styles={styles} color={color} />
-              <DetailItem icon="health-and-safety" label="SPECIALTY" value={resolvedData.doctorSpecialty ?? 'Not provided'} styles={styles} color={color} />
-              <DetailItem icon="medical-information" label="CONDITION" value={resolvedData.condition} styles={styles} color={color} />
-              <DetailItem icon="calendar-today" label="VISIT DATE" value={formatVisitDate(resolvedData.visitDate)} styles={styles} color={color} />
+              <DetailItem icon="groups" label={t('prescriptionDetail.fieldPatient')} value={resolvedData.patientName ?? t('prescriptionDetail.unknownPatient')} styles={styles} color={color} />
+              <DetailItem icon="person" label={t('prescriptionDetail.fieldDoctor')} value={resolvedData.doctorName} styles={styles} color={color} />
+              <DetailItem icon="health-and-safety" label={t('prescriptionDetail.fieldSpecialty')} value={resolvedData.doctorSpecialty ?? t('prescriptionDetail.notProvided')} styles={styles} color={color} />
+              <DetailItem icon="medical-information" label={t('prescriptionDetail.fieldCondition')} value={resolvedData.condition} styles={styles} color={color} />
+              <DetailItem icon="calendar-today" label={t('prescriptionDetail.fieldVisitDate')} value={formatVisitDate(resolvedData.visitDate, locale)} styles={styles} color={color} />
             </View>
 
             <View>
-              <ThemedText style={styles.tagsLabel}>TAGS</ThemedText>
+              <ThemedText style={styles.tagsLabel}>{t('prescriptionDetail.tags')}</ThemedText>
               <View style={styles.tagRow}>
                 {resolvedData.tags.map((tag, index) => (
                   <View key={tag.toLowerCase()} style={[styles.tagChip, index === 0 ? styles.tagPrimary : null]}>
@@ -285,7 +289,7 @@ export function PrescriptionDetailScreen({
       </ScrollView>
 
       <View style={styles.actionRowLegacy} testID="prescription-detail-actions">
-        <ThemedText style={styles.srOnly}>Actions</ThemedText>
+        <ThemedText style={styles.srOnly}>{t('prescriptionDetail.actionsSr')}</ThemedText>
       </View>
     </ThemedView>
   );
