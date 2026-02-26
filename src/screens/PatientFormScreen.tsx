@@ -1,5 +1,5 @@
 import { useContext, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
@@ -9,6 +9,11 @@ import { ThemedView } from '@/components/themed-view';
 import { initializeDb, openDb } from '@/src/db';
 import { useTranslation } from '@/src/i18n/LocaleProvider';
 import { createPatient, getPatientById, updatePatient } from '@/src/db/patients';
+import {
+  createAutoThemedStyles,
+  useAutoThemeColor,
+  useAutoThemedStyles,
+} from '@/src/theme/auto-theme';
 import { validatePatientInput } from '@/src/utils/validation';
 
 export type PatientFormMode = 'add' | 'edit';
@@ -19,6 +24,8 @@ type PatientFormScreenProps = {
 };
 
 export function PatientFormScreen({ mode, patientId }: PatientFormScreenProps) {
+  const styles = useAutoThemedStyles(screenStyles);
+  const color = useAutoThemeColor();
   const { t } = useTranslation();
   const insets = useContext(SafeAreaInsetsContext) ?? {
     top: 0,
@@ -114,7 +121,7 @@ export function PatientFormScreen({ mode, patientId }: PatientFormScreenProps) {
   if (loading) {
     return (
       <ThemedView style={[styles.container, { paddingTop: insets.top + 8 }]} testID="patient-form-screen">
-        <ActivityIndicator color="#7FBEFF" />
+        <ActivityIndicator color={color('#7FBEFF')} />
       </ThemedView>
     );
   }
@@ -133,7 +140,7 @@ export function PatientFormScreen({ mode, patientId }: PatientFormScreenProps) {
             value={name}
             onChangeText={setName}
             placeholder={t('patientForm.patientNamePlaceholder')}
-            placeholderTextColor="#7C96B1"
+            placeholderTextColor={color('#7C96B1')}
             style={styles.input}
             testID="patient-form-name-input"
           />
@@ -151,7 +158,7 @@ export function PatientFormScreen({ mode, patientId }: PatientFormScreenProps) {
             value={relationship}
             onChangeText={setRelationship}
             placeholder={t('patientForm.optionalPlaceholder')}
-            placeholderTextColor="#7C96B1"
+            placeholderTextColor={color('#7C96B1')}
             style={styles.input}
             testID="patient-form-relationship-input"
           />
@@ -165,7 +172,7 @@ export function PatientFormScreen({ mode, patientId }: PatientFormScreenProps) {
             onChangeText={setAge}
             keyboardType="number-pad"
             placeholder={t('patientForm.optionalPlaceholder')}
-            placeholderTextColor="#7C96B1"
+            placeholderTextColor={color('#7C96B1')}
             style={styles.input}
             testID="patient-form-age-input"
           />
@@ -181,7 +188,7 @@ export function PatientFormScreen({ mode, patientId }: PatientFormScreenProps) {
           testID="patient-form-primary-checkbox"
         >
           <View style={[styles.checkbox, isPrimary && styles.checkboxSelected]}>
-            {isPrimary ? <MaterialIcons name="check" size={16} color="#EAF3FF" /> : null}
+            {isPrimary ? <MaterialIcons name="check" size={16} color={color('#EAF3FF')} /> : null}
           </View>
           <ThemedText style={styles.primaryToggleLabel}>{t('patientForm.primaryToggle')}</ThemedText>
         </Pressable>
@@ -204,7 +211,7 @@ export function PatientFormScreen({ mode, patientId }: PatientFormScreenProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const screenStyles = createAutoThemedStyles({
   container: {
     flex: 1,
     padding: 20,

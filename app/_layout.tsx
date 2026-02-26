@@ -4,8 +4,8 @@ import { StatusBar } from "expo-status-bar";
 import { LogBox } from "react-native";
 import "react-native-reanimated";
 
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { LocaleProvider } from "@/src/i18n/LocaleProvider";
+import { ThemePreferenceProvider, useAppColorScheme } from "@/src/theme/theme-preference";
 
 // Prevent "Open debugger to view warnings" overlay from covering the tab bar during E2E tests.
 if (__DEV__) {
@@ -16,8 +16,8 @@ export const unstable_settings = {
   anchor: "(tabs)",
 };
 
-export default function RootLayout() {
-  const colorScheme = useColorScheme();
+function RootNavigator() {
+  const colorScheme = useAppColorScheme();
 
   return (
     <LocaleProvider>
@@ -28,8 +28,16 @@ export default function RootLayout() {
           <Stack.Screen name="add-edit-prescription" options={{ headerShown: false }} />
           <Stack.Screen name="prescription-detail" options={{ headerShown: false }} />
         </Stack>
-        <StatusBar style="auto" />
+        <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
       </ThemeProvider>
     </LocaleProvider>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <ThemePreferenceProvider>
+      <RootNavigator />
+    </ThemePreferenceProvider>
   );
 }

@@ -1,5 +1,5 @@
 import { useContext, useEffect, useMemo, useState } from 'react';
-import { Image, Pressable, RefreshControl, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Image, Pressable, RefreshControl, ScrollView, TextInput, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 
@@ -9,6 +9,11 @@ import { initializeDb, openDb } from '@/src/db';
 import { listPatients } from '@/src/db/patients';
 import { searchPrescriptions } from '@/src/db/prescriptions';
 import type { Patient, Prescription } from '@/src/db/types';
+import {
+  createAutoThemedStyles,
+  useAutoThemeColor,
+  useAutoThemedStyles,
+} from '@/src/theme/auto-theme';
 import { useAppLocale, useTranslation } from '@/src/i18n/LocaleProvider';
 
 export type TimelineData = {
@@ -79,6 +84,8 @@ export function TimelineScreen({
   loadData = defaultLoadTimelineData,
   onOpenPrescription,
 }: TimelineScreenProps) {
+  const styles = useAutoThemedStyles(screenStyles);
+  const color = useAutoThemeColor();
   const { t } = useTranslation();
   const { locale } = useAppLocale();
   const insets = useContext(SafeAreaInsetsContext) ?? {
@@ -224,10 +231,10 @@ export function TimelineScreen({
       </View>
 
       <View style={styles.searchContainer} testID="timeline-search-panel">
-        <MaterialIcons name="search" size={18} color="#60779A" />
+        <MaterialIcons name="search" size={18} color={color('#60779A')} />
         <TextInput
           placeholder={t('timeline.searchPlaceholder')}
-          placeholderTextColor="#60779A"
+          placeholderTextColor={color('#60779A')}
           autoCapitalize="none"
           value={query}
           onChangeText={setQuery}
@@ -269,7 +276,7 @@ export function TimelineScreen({
           <RefreshControl
             refreshing={isRefreshing}
             onRefresh={() => void refreshTimeline()}
-            tintColor="#137FEC"
+            tintColor={color('#137FEC')}
           />
         }
       >
@@ -286,7 +293,7 @@ export function TimelineScreen({
   );
 }
 
-const styles = StyleSheet.create({
+const screenStyles = createAutoThemedStyles({
   container: {
     flex: 1,
     backgroundColor: '#101922',
