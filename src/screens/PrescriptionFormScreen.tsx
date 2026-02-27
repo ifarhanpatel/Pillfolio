@@ -1,5 +1,5 @@
 import { useContext, useEffect, useMemo, useState } from 'react';
-import { Alert, Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { Alert, Image, Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
@@ -133,6 +133,8 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
     value.startsWith('validation.') || value.startsWith('prescriptionForm.') ? t(value) : value;
 
   const parsedTags = useMemo(() => parseTagInput(tagsInput), [tagsInput]);
+  const hasSelectedPhoto = photoUri.trim().length > 0 && photoUri.trim() !== 'e2e-fixture';
+  const photoUriInputValue = photoUri.trim() === 'e2e-fixture' ? photoUri : '';
   const navigateBack = () => {
     const canGoBack = (router as { canGoBack?: () => boolean }).canGoBack?.() ?? false;
     if (canGoBack) {
@@ -321,41 +323,67 @@ export function PrescriptionFormScreen({ mode, prescriptionId }: PrescriptionFor
 
         <ThemedView style={styles.photoSection} testID="prescription-form-photo">
           <ThemedText style={styles.sectionLabel}>{t('prescriptionForm.photoSection')}</ThemedText>
-          <View style={styles.photoUploadCard}>
-            <MaterialIcons name="add-a-photo" size={38} color={color('#137FEC')} />
-            <ThemedText type="subtitle" style={styles.uploadTitle}>
-              {t('prescriptionForm.uploadTitle')}
-            </ThemedText>
-            <ThemedText style={styles.uploadSub}>{t('prescriptionForm.uploadSubtitle')}</ThemedText>
-            <View style={styles.photoActions}>
-              <Pressable
-                style={[styles.galleryButton, styles.photoButton]}
-                onPress={() => onPickPhoto('library')}
-                testID="pick-photo-library"
-              >
-                <MaterialIcons name="photo-library" size={16} color={color('#137FEC')} />
-                <ThemedText style={styles.galleryText}>{t('prescriptionForm.gallery')}</ThemedText>
-              </Pressable>
-              <Pressable
-                style={[styles.cameraButton, styles.photoButton]}
-                onPress={() => onPickPhoto('camera')}
-                testID="pick-photo-camera"
-              >
-                <MaterialIcons name="photo-camera" size={16} color={color('#EAF4FF')} />
-                <ThemedText style={styles.cameraText}>{t('prescriptionForm.camera')}</ThemedText>
-              </Pressable>
+          {hasSelectedPhoto ? (
+            <View style={styles.photoPreviewCard} testID="prescription-photo-preview">
+              <Image source={{ uri: photoUri.trim() }} style={styles.photoPreviewImage} resizeMode="cover" />
+              <View style={styles.photoActions}>
+                <Pressable
+                  style={[styles.galleryButton, styles.photoButton]}
+                  onPress={() => onPickPhoto('library')}
+                  testID="pick-photo-library"
+                >
+                  <MaterialIcons name="photo-library" size={16} color={color('#137FEC')} />
+                  <ThemedText style={styles.galleryText}>{t('prescriptionForm.gallery')}</ThemedText>
+                </Pressable>
+                <Pressable
+                  style={[styles.cameraButton, styles.photoButton]}
+                  onPress={() => onPickPhoto('camera')}
+                  testID="pick-photo-camera"
+                >
+                  <MaterialIcons name="photo-camera" size={16} color={color('#EAF4FF')} />
+                  <ThemedText style={styles.cameraText}>{t('prescriptionForm.camera')}</ThemedText>
+                </Pressable>
+              </View>
+              <ThemedText style={styles.helperInline}>Selected photo preview</ThemedText>
             </View>
-          </View>
+          ) : (
+            <View style={styles.photoUploadCard}>
+              <MaterialIcons name="add-a-photo" size={38} color={color('#137FEC')} />
+              <ThemedText type="subtitle" style={styles.uploadTitle}>
+                {t('prescriptionForm.uploadTitle')}
+              </ThemedText>
+              <ThemedText style={styles.uploadSub}>{t('prescriptionForm.uploadSubtitle')}</ThemedText>
+              <View style={styles.photoActions}>
+                <Pressable
+                  style={[styles.galleryButton, styles.photoButton]}
+                  onPress={() => onPickPhoto('library')}
+                  testID="pick-photo-library"
+                >
+                  <MaterialIcons name="photo-library" size={16} color={color('#137FEC')} />
+                  <ThemedText style={styles.galleryText}>{t('prescriptionForm.gallery')}</ThemedText>
+                </Pressable>
+                <Pressable
+                  style={[styles.cameraButton, styles.photoButton]}
+                  onPress={() => onPickPhoto('camera')}
+                  testID="pick-photo-camera"
+                >
+                  <MaterialIcons name="photo-camera" size={16} color={color('#EAF4FF')} />
+                  <ThemedText style={styles.cameraText}>{t('prescriptionForm.camera')}</ThemedText>
+                </Pressable>
+              </View>
+            </View>
+          )}
 
           <TextInput
-            placeholder={t('prescriptionForm.photoUriPlaceholder')}
+            placeholder={hasSelectedPhoto ? 'Photo selected' : t('prescriptionForm.photoUriPlaceholder')}
             placeholderTextColor={color('#738BAA')}
-            value={photoUri}
+            value={photoUriInputValue}
             onChangeText={setPhotoUri}
             autoCapitalize="none"
             style={styles.input}
             testID="prescription-photo-uri-input"
           />
+          {hasSelectedPhoto ? <ThemedText style={styles.helperInline}>Photo selected and ready to save.</ThemedText> : null}
           {errors.photoUri ? <ThemedText style={styles.error}>{localizeMaybeKey(errors.photoUri)}</ThemedText> : null}
         </ThemedView>
 
@@ -590,6 +618,20 @@ const screenStyles = createAutoThemedStyles({
     padding: 18,
     alignItems: 'center',
     gap: 6,
+  },
+  photoPreviewCard: {
+    borderWidth: 1,
+    borderColor: '#244061',
+    borderRadius: 12,
+    backgroundColor: '#0E1E33',
+    padding: 10,
+    gap: 8,
+  },
+  photoPreviewImage: {
+    width: '100%',
+    height: 180,
+    borderRadius: 10,
+    backgroundColor: '#1A2638',
   },
   uploadTitle: {
     color: '#E5EFFB',

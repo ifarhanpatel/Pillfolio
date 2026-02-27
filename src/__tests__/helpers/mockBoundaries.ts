@@ -1,6 +1,7 @@
-import type { SqlDriver } from "../../db/driver";
+import type { SqlDriver } from '../../db/driver';
 import type {
   AppBoundaries,
+  BackupBoundary,
   ClockBoundary,
   DbBoundary,
   FileStorageBoundary,
@@ -8,12 +9,12 @@ import type {
   ImagePickerBoundary,
   ImageSource,
   PickedImage,
-} from "../../services";
-import { createAppBoundaries } from "../../services";
-import { FakeDriver } from "./fakeDriver";
+} from '../../services';
+import { createAppBoundaries } from '../../services';
+import { FakeDriver } from './fakeDriver';
 
 export class MockClockBoundary implements ClockBoundary {
-  constructor(private readonly isoNow: string = "2025-02-01T10:00:00.000Z") {}
+  constructor(private readonly isoNow: string = '2025-02-01T10:00:00.000Z') {}
 
   nowIso(): string {
     return this.isoNow;
@@ -53,7 +54,7 @@ export class MockFileStorageBoundary implements FileStorageBoundary {
 
 export class MockImagePickerBoundary implements ImagePickerBoundary {
   public picks: ImageSource[] = [];
-  public nextResult: PickedImage | null = { uri: "file://picked/image.jpg" };
+  public nextResult: PickedImage | null = { uri: 'file://picked/image.jpg' };
 
   async pickImage(source: ImageSource): Promise<PickedImage | null> {
     this.picks.push(source);
@@ -70,23 +71,80 @@ export class MockImageCompressionBoundary implements ImageCompressionBoundary {
   }
 }
 
+export class MockBackupBoundary implements BackupBoundary {
+  public savedBackups: { fileName: string; contents: string }[] = [];
+  public sharedFiles: string[] = [];
+  public deviceSavedFiles: { fileUri: string; fileName: string }[] = [];
+  public sourceFileBase64ByUri = new Map<string, string>();
+  public restoredPrescriptionImages: { fileName: string; base64Contents: string }[] = [];
+  public nextDeviceFileUri: string | null = null;
+  public pickedUri: string | null = null;
+  public fileContentsByUri = new Map<string, string>();
+
+  async saveBackupFile(fileName: string, contents: string): Promise<string> {
+    this.savedBackups.push({ fileName, contents });
+    const uri = `file://mock-backups/${fileName}`;
+    this.fileContentsByUri.set(uri, contents);
+    return uri;
+  }
+
+  async readFileAsBase64(fileUri: string): Promise<string> {
+    const contents = this.sourceFileBase64ByUri.get(fileUri);
+    if (!contents) {
+      throw new Error('Source file not found.');
+    }
+
+    return contents;
+  }
+
+  async savePrescriptionImageFromBase64(fileName: string, base64Contents: string): Promise<string> {
+    this.restoredPrescriptionImages.push({ fileName, base64Contents });
+    return `file://mock-storage/prescriptions/${fileName}`;
+  }
+
+  async pickBackupFile(): Promise<string | null> {
+    return this.pickedUri;
+  }
+
+  async readBackupFile(fileUri: string): Promise<string> {
+    const contents = this.fileContentsByUri.get(fileUri);
+    if (!contents) {
+      throw new Error('Backup file not found.');
+    }
+
+    return contents;
+  }
+
+  async shareFile(fileUri: string): Promise<void> {
+    this.sharedFiles.push(fileUri);
+  }
+
+  async saveToDeviceFiles(fileUri: string, fileName: string): Promise<string | null> {
+    this.deviceSavedFiles.push({ fileUri, fileName });
+    if (this.nextDeviceFileUri !== null) {
+      return this.nextDeviceFileUri;
+    }
+
+    return `file://mock-device-files/${fileName}`;
+  }
+}
+
 export type MockBoundarySet = {
   db: MockDbBoundary;
   fileStorage: MockFileStorageBoundary;
   imagePicker: MockImagePickerBoundary;
   imageCompression: MockImageCompressionBoundary;
   clock: MockClockBoundary;
+  backup: MockBackupBoundary;
 };
 
-export const createMockBoundarySet = (
-  overrides: Partial<MockBoundarySet> = {}
-): MockBoundarySet => ({
+export const createMockBoundarySet = (overrides: Partial<MockBoundarySet> = {}): MockBoundarySet => ({
   db: overrides.db ?? new MockDbBoundary(),
   fileStorage: overrides.fileStorage ?? new MockFileStorageBoundary(),
   imagePicker: overrides.imagePicker ?? new MockImagePickerBoundary(),
-  imageCompression:
-    overrides.imageCompression ?? new MockImageCompressionBoundary(),
+  imageCompression: overrides.imageCompression ?? new MockImageCompressionBoundary(),
   clock: overrides.clock ?? new MockClockBoundary(),
+  backup: overrides.backup ?? new MockBackupBoundary(),
 });
 
 export const createTestBoundaries = (
@@ -99,6 +157,7 @@ export const createTestBoundaries = (
     imagePicker: overrides.imagePicker ?? mocks.imagePicker,
     imageCompression: overrides.imageCompression ?? mocks.imageCompression,
     clock: overrides.clock ?? mocks.clock,
+    backup: overrides.backup ?? mocks.backup,
   });
 
   return { boundaries, mocks };
