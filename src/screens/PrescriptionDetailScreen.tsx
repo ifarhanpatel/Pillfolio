@@ -229,7 +229,6 @@ export function PrescriptionDetailScreen({
               <Image source={{ uri: resolvedData.photoUri }} style={styles.image} resizeMode="cover" />
               <View style={styles.zoomPill}>
                 <MaterialIcons name="zoom-in" size={12} color={color('#E7EEF7')} />
-                <MaterialIcons name="zoom-in" size={12} color={color('#E7EEF7')} />
                 <ThemedText style={styles.zoomText}>{t('prescriptionDetail.imageZoom')}</ThemedText>
               </View>
             </Pressable>

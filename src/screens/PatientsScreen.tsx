@@ -164,7 +164,6 @@ export function PatientsScreen() {
 
         <View style={styles.searchBar}>
           <MaterialIcons name="search" size={18} color={color('#7086A8')} />
-          <MaterialIcons name="search" size={18} color={color('#7086A8')} />
           <ThemedText style={styles.searchPlaceholder}>{t('patients.searchPlaceholder')}</ThemedText>
         </View>
         <Pressable
@@ -231,7 +230,6 @@ export function PatientsScreen() {
                       ) : null}
                       <ThemedText style={styles.cardMeta}>
                         <MaterialIcons name="description" size={12} color={color('#137FEC')} />{' '}
-                        <MaterialIcons name="description" size={12} color={color('#137FEC')} />{' '}
                         {t('patients.prescriptionCount', { count: patient.prescriptionsCount })}
                       </ThemedText>
                     </View>
@@ -253,7 +251,6 @@ export function PatientsScreen() {
         ) : null}
 
         <View style={styles.footerBadge}>
-          <MaterialIcons name="verified-user" size={14} color={color('#5E7290')} />
           <MaterialIcons name="verified-user" size={14} color={color('#5E7290')} />
           <ThemedText style={styles.footerText}>{t('patients.footerPrivacy')}</ThemedText>
         </View>
