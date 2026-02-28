@@ -12,6 +12,14 @@ Local-first React Native app (Expo + Expo Router) for managing patient prescript
 yarn install
 ```
 
+Optional local monitoring setup:
+
+```bash
+cp .env.example .env
+```
+
+Set `EXPO_PUBLIC_SENTRY_DSN` in `.env` before launching the app if you want Sentry enabled. If you already had dependencies installed before this change, rerun `yarn install` to pull `@sentry/react-native`.
+
 ## Run the app
 ```bash
 yarn start

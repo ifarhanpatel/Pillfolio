@@ -36,6 +36,7 @@
     "e2e:ci": "yarn e2e:ios:run:ci"
   },
   "dependencies": {
+    "@sentry/react-native": "^7.5.0",
     "@expo/vector-icons": "^15.0.2",
     "@react-native-async-storage/async-storage": "^2.0.0",
     "@react-native-community/datetimepicker": "^8.6.0",

@@ -30,6 +30,7 @@
     "plugins": [
       "expo-detox-config-plugin",
       "expo-router",
+      "@sentry/react-native/expo",
       "./plugins/withAndroidMaterialDatePickerTheme",
       [
         "expo-image-picker",

@@ -5,6 +5,7 @@ import { LogBox } from "react-native";
 import "react-native-reanimated";
 
 import { LocaleProvider } from "@/src/i18n/LocaleProvider";
+import { Sentry, initializeSentry } from "@/src/services/sentry";
 import { ThemePreferenceProvider, useAppColorScheme } from "@/src/theme/theme-preference";
 
 // Prevent "Open debugger to view warnings" overlay from covering the tab bar during E2E tests.
@@ -15,6 +16,8 @@ if (__DEV__) {
 export const unstable_settings = {
   anchor: "(tabs)",
 };
+
+initializeSentry();
 
 function RootNavigator() {
   const colorScheme = useAppColorScheme();
@@ -34,10 +37,12 @@ function RootNavigator() {
   );
 }
 
-export default function RootLayout() {
+function RootLayout() {
   return (
     <ThemePreferenceProvider>
       <RootNavigator />
     </ThemePreferenceProvider>
   );
 }
+
+export default Sentry.wrap(RootLayout);
