@@ -4,11 +4,12 @@ Local-first React Native app (Expo + Expo Router) for managing patient prescript
 
 ## Requirements
 - Node.js 20+
-- Yarn 1.x
+- Yarn 4.x
 - Xcode + iOS Simulator (for Detox iOS E2E)
 
 ## Setup
 ```bash
+corepack enable
 yarn install
 ```
 
