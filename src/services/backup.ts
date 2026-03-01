@@ -2,6 +2,11 @@ import { listPatients } from '../db/patients';
 import { searchPrescriptions } from '../db/prescriptions';
 import type { Patient, Prescription } from '../db/types';
 import type { AppBoundaries } from './boundaries';
+import {
+  addSentryBreadcrumb,
+  captureSentryException,
+  withSentrySpan,
+} from './sentry';
 
 export type BackupPrescriptionImage = {
   prescriptionId: string;
@@ -86,9 +91,16 @@ const clearExistingData = async (boundaries: AppBoundaries): Promise<void> => {
   }
 };
 
+type BackupSnapshotSummary = {
+  patients_count: number;
+  prescriptions_count: number;
+  has_images: boolean;
+};
+
 const createBackupSnapshotFile = async (boundaries: AppBoundaries): Promise<{
   fileName: string;
   fileUri: string;
+  summary: BackupSnapshotSummary;
 }> => {
   const driver = await boundaries.db.open();
   await boundaries.db.initialize(driver);
@@ -122,131 +134,263 @@ const createBackupSnapshotFile = async (boundaries: AppBoundaries): Promise<{
   const contents = JSON.stringify(snapshot, null, 2);
   const fileUri = await boundaries.backup.saveBackupFile(fileName, contents);
 
-  return { fileName, fileUri };
+  return {
+    fileName,
+    fileUri,
+    summary: {
+      patients_count: snapshot.patients.length,
+      prescriptions_count: snapshot.prescriptions.length,
+      has_images: prescriptionImages.length > 0,
+    },
+  };
 };
 
 export const exportBackup = async (boundaries: AppBoundaries): Promise<BackupExportResult> => {
-  const { fileUri } = await createBackupSnapshotFile(boundaries);
-  await boundaries.backup.shareFile(fileUri);
+  addSentryBreadcrumb({
+    category: 'backup',
+    message: 'exportBackup:start',
+  });
 
-  return { fileUri };
+  let summary: BackupSnapshotSummary | undefined;
+
+  try {
+    const snapshotFile = await withSentrySpan('create-backup-snapshot', 'backup', async () => {
+      return createBackupSnapshotFile(boundaries);
+    });
+    summary = snapshotFile.summary;
+
+    await withSentrySpan('share-backup-file', 'backup', async () => {
+      await boundaries.backup.shareFile(snapshotFile.fileUri);
+    });
+
+    addSentryBreadcrumb({
+      category: 'backup',
+      message: 'exportBackup:success',
+      data: summary,
+    });
+
+    return { fileUri: snapshotFile.fileUri };
+  } catch (error) {
+    captureSentryException(error, {
+      area: 'backup',
+      action: 'export',
+      data: summary,
+    });
+    throw error;
+  }
 };
 
 export const saveBackupToDeviceFiles = async (
   boundaries: AppBoundaries
 ): Promise<DeviceFilesBackupExportResult> => {
-  const { fileName, fileUri } = await createBackupSnapshotFile(boundaries);
-  const deviceFileUri = await boundaries.backup.saveToDeviceFiles(fileUri, fileName);
+  addSentryBreadcrumb({
+    category: 'backup',
+    message: 'saveBackupToDeviceFiles:start',
+  });
 
-  return { fileUri, deviceFileUri };
+  let summary: BackupSnapshotSummary | undefined;
+
+  try {
+    const snapshotFile = await withSentrySpan('create-backup-snapshot', 'backup', async () => {
+      return createBackupSnapshotFile(boundaries);
+    });
+    summary = snapshotFile.summary;
+
+    const deviceFileUri = await withSentrySpan('save-backup-to-device-files', 'backup', async () => {
+      return boundaries.backup.saveToDeviceFiles(snapshotFile.fileUri, snapshotFile.fileName);
+    });
+
+    addSentryBreadcrumb({
+      category: 'backup',
+      message: deviceFileUri ? 'saveBackupToDeviceFiles:success' : 'saveBackupToDeviceFiles:cancelled',
+      data: {
+        ...summary,
+        cancelled: deviceFileUri === null,
+      },
+      level: deviceFileUri ? 'info' : 'warning',
+    });
+
+    return { fileUri: snapshotFile.fileUri, deviceFileUri };
+  } catch (error) {
+    captureSentryException(error, {
+      area: 'backup',
+      action: 'save_to_device_files',
+      data: summary,
+    });
+    throw error;
+  }
 };
 
 export const importBackup = async (
   boundaries: AppBoundaries,
   mode: BackupImportMode
 ): Promise<BackupImportResult> => {
-  const fileUri = await boundaries.backup.pickBackupFile();
-  if (!fileUri) {
-    return {
-      importedPatients: 0,
-      importedPrescriptions: 0,
+  addSentryBreadcrumb({
+    category: 'backup',
+    message: 'importBackup:start',
+    data: {
+      mode,
+    },
+  });
+
+  let summary:
+    | (BackupSnapshotSummary & {
+        mode: BackupImportMode;
+      })
+    | undefined;
+
+  try {
+    const fileUri = await boundaries.backup.pickBackupFile();
+    if (!fileUri) {
+      addSentryBreadcrumb({
+        category: 'backup',
+        message: 'importBackup:cancelled',
+        level: 'warning',
+        data: {
+          mode,
+          cancelled: true,
+        },
+      });
+      return {
+        importedPatients: 0,
+        importedPrescriptions: 0,
+      };
+    }
+
+    const payload = await withSentrySpan('parse-backup-import', 'backup', async () => {
+      const rawContents = await boundaries.backup.readBackupFile(fileUri);
+      return JSON.parse(rawContents) as unknown;
+    });
+
+    if (!isBackupSnapshot(payload)) {
+      addSentryBreadcrumb({
+        category: 'backup',
+        message: 'importBackup:validation_failure',
+        level: 'warning',
+        data: {
+          mode,
+        },
+      });
+      throw new Error('Invalid backup file format.');
+    }
+
+    summary = {
+      mode,
+      patients_count: payload.patients.length,
+      prescriptions_count: payload.prescriptions.length,
+      has_images: (payload.prescriptionImages?.length ?? 0) > 0,
     };
-  }
 
-  const rawContents = await boundaries.backup.readBackupFile(fileUri);
-  const payload: unknown = JSON.parse(rawContents);
-  if (!isBackupSnapshot(payload)) {
-    throw new Error('Invalid backup file format.');
-  }
+    const imageByPrescriptionId = new Map<string, BackupPrescriptionImage>();
+    for (const image of payload.prescriptionImages ?? []) {
+      imageByPrescriptionId.set(image.prescriptionId, image);
+    }
 
-  const imageByPrescriptionId = new Map<string, BackupPrescriptionImage>();
-  for (const image of payload.prescriptionImages ?? []) {
-    imageByPrescriptionId.set(image.prescriptionId, image);
-  }
+    await withSentrySpan('import-backup-db-write', 'backup', async () => {
+      const driver = await boundaries.db.open();
+      await boundaries.db.initialize(driver);
 
-  const driver = await boundaries.db.open();
-  await boundaries.db.initialize(driver);
+      if (mode === 'replace') {
+        await clearExistingData(boundaries);
+      }
 
-  if (mode === 'replace') {
-    await clearExistingData(boundaries);
-  }
+      for (const patient of payload.patients) {
+        if (mode === 'merge') {
+          const existing = await driver.getFirstAsync<{ id: string }>('SELECT * FROM patients WHERE id = ?;', [
+            patient.id,
+          ]);
+          if (existing) {
+            await driver.runAsync(
+              'UPDATE patients SET name = ?, relationship = ?, gender = ?, age = ?, isPrimary = ?, updatedAt = ? WHERE id = ?;',
+              [
+                patient.name,
+                patient.relationship,
+                patient.gender,
+                patient.age,
+                patient.isPrimary ? 1 : 0,
+                patient.updatedAt,
+                patient.id,
+              ]
+            );
+            continue;
+          }
+        }
 
-  for (const patient of payload.patients) {
-    if (mode === 'merge') {
-      const existing = await driver.getFirstAsync<{ id: string }>('SELECT * FROM patients WHERE id = ?;', [
-        patient.id,
-      ]);
-      if (existing) {
         await driver.runAsync(
-          'UPDATE patients SET name = ?, relationship = ?, gender = ?, age = ?, isPrimary = ?, updatedAt = ? WHERE id = ?;',
+          'INSERT INTO patients (id, name, relationship, gender, age, isPrimary, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?);',
           [
+            patient.id,
             patient.name,
             patient.relationship,
             patient.gender,
             patient.age,
             patient.isPrimary ? 1 : 0,
+            patient.createdAt,
             patient.updatedAt,
-            patient.id,
           ]
         );
-        continue;
       }
-    }
 
-    await driver.runAsync(
-      'INSERT INTO patients (id, name, relationship, gender, age, isPrimary, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?);',
-      [
-        patient.id,
-        patient.name,
-        patient.relationship,
-        patient.gender,
-        patient.age,
-        patient.isPrimary ? 1 : 0,
-        patient.createdAt,
-        patient.updatedAt,
-      ]
-    );
-  }
+      for (const prescription of payload.prescriptions) {
+        let restoredPhotoUri = prescription.photoUri;
+        const backupImage = imageByPrescriptionId.get(prescription.id);
+        if (backupImage) {
+          restoredPhotoUri = await boundaries.backup.savePrescriptionImageFromBase64(
+            backupImage.fileName,
+            backupImage.base64Contents
+          );
+        }
 
-  for (const prescription of payload.prescriptions) {
-    let restoredPhotoUri = prescription.photoUri;
-    const backupImage = imageByPrescriptionId.get(prescription.id);
-    if (backupImage) {
-      restoredPhotoUri = await boundaries.backup.savePrescriptionImageFromBase64(
-        backupImage.fileName,
-        backupImage.base64Contents
-      );
-    }
+        if (mode === 'merge') {
+          const existing = await driver.getFirstAsync<{ id: string }>(
+            'SELECT * FROM prescriptions WHERE id = ?;',
+            [prescription.id]
+          );
+          if (existing) {
+            await driver.runAsync('DELETE FROM prescriptions WHERE id = ?;', [prescription.id]);
+          }
+        }
 
-    if (mode === 'merge') {
-      const existing = await driver.getFirstAsync<{ id: string }>('SELECT * FROM prescriptions WHERE id = ?;', [
-        prescription.id,
-      ]);
-      if (existing) {
-        await driver.runAsync('DELETE FROM prescriptions WHERE id = ?;', [prescription.id]);
+        await driver.runAsync(
+          'INSERT INTO prescriptions (id, patientId, photoUri, doctorName, doctorSpecialty, condition, tagsJson, visitDate, notes, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);',
+          [
+            prescription.id,
+            prescription.patientId,
+            restoredPhotoUri,
+            prescription.doctorName,
+            prescription.doctorSpecialty,
+            prescription.condition,
+            JSON.stringify(prescription.tags),
+            prescription.visitDate,
+            prescription.notes,
+            prescription.createdAt,
+            prescription.updatedAt,
+          ]
+        );
       }
-    }
+    }, {
+      mode,
+      has_images: summary.has_images,
+      patients_count: summary.patients_count,
+      prescriptions_count: summary.prescriptions_count,
+    });
 
-    await driver.runAsync(
-      'INSERT INTO prescriptions (id, patientId, photoUri, doctorName, doctorSpecialty, condition, tagsJson, visitDate, notes, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);',
-      [
-        prescription.id,
-        prescription.patientId,
-        restoredPhotoUri,
-        prescription.doctorName,
-        prescription.doctorSpecialty,
-        prescription.condition,
-        JSON.stringify(prescription.tags),
-        prescription.visitDate,
-        prescription.notes,
-        prescription.createdAt,
-        prescription.updatedAt,
-      ]
-    );
+    addSentryBreadcrumb({
+      category: 'backup',
+      message: 'importBackup:success',
+      data: summary,
+    });
+
+    return {
+      importedPatients: payload.patients.length,
+      importedPrescriptions: payload.prescriptions.length,
+    };
+  } catch (error) {
+    captureSentryException(error, {
+      area: 'backup',
+      action: `import_${mode}`,
+      data: summary ?? { mode },
+    });
+    throw error;
   }
-
-  return {
-    importedPatients: payload.patients.length,
-    importedPrescriptions: payload.prescriptions.length,
-  };
 };
