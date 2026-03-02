@@ -52,6 +52,9 @@ jobs:
     name: e2e-ios
     runs-on: macos-15
     timeout-minutes: 60
+    env:
+      # CI test builds should not fail on missing Sentry release-upload credentials.
+      SENTRY_DISABLE_AUTO_UPLOAD: "true"
     needs:
       - lint
       - unit
@@ -86,6 +89,9 @@ jobs:
     name: e2e-android
     runs-on: ubuntu-latest
     timeout-minutes: 75
+    env:
+      # CI test builds should not fail on missing Sentry release-upload credentials.
+      SENTRY_DISABLE_AUTO_UPLOAD: "true"
     needs:
       - lint
       - unit
