@@ -3,6 +3,7 @@ import { FakeDriver } from "../helpers/fakeDriver";
 
 describe("migrations", () => {
   const loadInitializeDb = () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const dbModule = require("../../db") as typeof import("../../db");
     return dbModule.initializeDb;
   };

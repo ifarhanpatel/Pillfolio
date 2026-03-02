@@ -4,13 +4,28 @@ Local-first React Native app (Expo + Expo Router) for managing patient prescript
 
 ## Requirements
 - Node.js 20+
-- Yarn 1.x
+- Yarn 4.x
 - Xcode + iOS Simulator (for Detox iOS E2E)
 
 ## Setup
 ```bash
+corepack enable
 yarn install
 ```
+
+Optional local monitoring setup:
+
+```bash
+cp .env.example .env
+```
+
+Set `EXPO_PUBLIC_SENTRY_DSN` in `.env` before launching the app if you want Sentry enabled. If you already had dependencies installed before this change, rerun `yarn install` to pull `@sentry/react-native`.
+
+### Sentry privacy defaults
+
+When Sentry is enabled, Pillfolio sends crash/error telemetry, route breadcrumbs, and low-sample performance traces for core app flows. The app identifies each install with an anonymous local install ID, not a patient profile.
+
+Pillfolio intentionally excludes likely PHI/PII from Sentry payloads, including patient names, doctor names, notes, image URIs, backup file locations, and backup contents.
 
 ## Run the app
 ```bash

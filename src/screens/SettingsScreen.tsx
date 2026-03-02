@@ -7,6 +7,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useAppLocale, useTranslation } from '@/src/i18n/LocaleProvider';
 import { APP_LOCALE_OPTIONS } from '@/src/i18n/types';
+import { captureSentryException, captureSentryMessage } from '@/src/services/sentry';
 import {
   createAppBoundaries,
   exportBackup,
@@ -17,7 +18,7 @@ import {
 import { createAutoThemedStyles, useAutoThemedStyles } from '@/src/theme/auto-theme';
 import { type ThemePreference, useThemePreference } from '@/src/theme/theme-preference';
 
-const THEME_OPTIONS: Array<{ value: ThemePreference; label: string }> = [
+const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
   { value: 'system', label: 'System' },
   { value: 'light', label: 'Light' },
   { value: 'dark', label: 'Dark' },
@@ -45,6 +46,7 @@ export function SettingsScreen({
     left: 0,
   };
   const appVersion = Constants.expoConfig?.version ?? t('settings.versionUnknown');
+  const hasSentryDsn = Boolean(process.env.EXPO_PUBLIC_SENTRY_DSN);
   const boundaries = useMemo(() => createAppBoundaries(), []);
   const [busy, setBusy] = useState(false);
 
@@ -63,6 +65,15 @@ export function SettingsScreen({
 
       Alert.alert('Backup Exported', 'Your backup file is ready to share.');
     } catch (error) {
+      if (onExport) {
+        captureSentryException(error, {
+          area: 'backup',
+          action: 'export',
+          data: {
+            busy: true,
+          },
+        });
+      }
       Alert.alert('Backup Error', error instanceof Error ? error.message : 'Unable to export backup.');
     } finally {
       setBusy(false);
@@ -88,6 +99,15 @@ export function SettingsScreen({
         }
       }
     } catch (error) {
+      if (onSaveToDeviceFiles) {
+        captureSentryException(error, {
+          area: 'backup',
+          action: 'save_to_device_files',
+          data: {
+            busy: true,
+          },
+        });
+      }
       Alert.alert(
         'Backup Error',
         error instanceof Error ? error.message : 'Unable to save backup to device files.'
@@ -118,10 +138,32 @@ export function SettingsScreen({
         }
       }
     } catch (error) {
+      if (onRestore) {
+        captureSentryException(error, {
+          area: 'backup',
+          action: mode === 'replace' ? 'restore_replace' : 'restore_merge',
+          data: {
+            busy: true,
+          },
+        });
+      }
       Alert.alert('Restore Error', error instanceof Error ? error.message : 'Unable to restore backup.');
     } finally {
       setBusy(false);
     }
+  };
+
+  const runSentryTest = () => {
+    if (!hasSentryDsn) {
+      Alert.alert('Sentry Disabled', 'Set EXPO_PUBLIC_SENTRY_DSN in your .env file first.');
+      return;
+    }
+
+    const eventId = captureSentryMessage('Sentry diagnostic test from Settings screen', {
+      area: 'settings',
+      action: 'diagnostic_test',
+    });
+    Alert.alert('Sentry Test Sent', `Event ID: ${eventId}`);
   };
 
   return (
@@ -264,6 +306,17 @@ export function SettingsScreen({
           <ThemedText type="subtitle" style={styles.sectionTitle}>
             {t('settings.aboutTitle')}
           </ThemedText>
+          {__DEV__ ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={runSentryTest}
+              style={({ pressed }) => [styles.buttonSecondary, pressed ? styles.buttonPressed : undefined]}
+              testID="settings-sentry-test-button">
+              <ThemedText type="default" style={styles.buttonText}>
+                Send Diagnostic Sentry Event
+              </ThemedText>
+            </Pressable>
+          ) : null}
           <ThemedText type="default" style={styles.bodyText} testID="settings-version">
             {t('settings.versionLabel', { version: appVersion })}
           </ThemedText>

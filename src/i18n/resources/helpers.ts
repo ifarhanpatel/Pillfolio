@@ -11,7 +11,7 @@ type DeepPartial<T> = {
 const merge = <T extends Record<string, unknown>>(base: T, overrides: DeepPartial<T>): T => {
   const output: Record<string, unknown> = { ...base };
 
-  for (const key of Object.keys(overrides) as Array<keyof T>) {
+  for (const key of Object.keys(overrides) as (keyof T)[]) {
     const nextValue = overrides[key];
     if (nextValue && typeof nextValue === 'object' && !Array.isArray(nextValue)) {
       const current = base[key];

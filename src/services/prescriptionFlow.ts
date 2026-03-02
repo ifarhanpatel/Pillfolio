@@ -9,20 +9,12 @@ import type { Prescription } from "../db/types";
 import { DEFAULT_PATIENT_NAME } from "../constants/app";
 import { createId } from "../utils/id";
 import { validatePrescriptionInput } from "../utils/validation";
+import {
+  addSentryBreadcrumb,
+  captureSentryException,
+  withSentrySpan,
+} from "./sentry";
 import type { AppBoundaries, ImageSource } from "./boundaries";
-
-const logFlow = (stage: string, details?: Record<string, unknown>) => {
-  if (!__DEV__) {
-    return;
-  }
-
-  if (details) {
-    console.log(`[PrescriptionFlow] ${stage}`, details);
-    return;
-  }
-
-  console.log(`[PrescriptionFlow] ${stage}`);
-};
 
 const normalizeOptional = (value: string): string | null => {
   const trimmed = value.trim();
@@ -136,6 +128,14 @@ const toEditPayload = (draft: AddPrescriptionDraft, photoUri: string) => ({
   notes: normalizeOptional(draft.notes),
 });
 
+const toSentryDraftData = (draft: AddPrescriptionDraft) => ({
+  has_photo: Boolean(draft.photoUri.trim()),
+  tags_count: draft.tags.length,
+  has_doctor_specialty: Boolean(draft.doctorSpecialty.trim()),
+  has_notes: Boolean(draft.notes.trim()),
+  visit_date_present: Boolean(draft.visitDate.trim()),
+});
+
 export const ensureDefaultPatient = async (boundaries: AppBoundaries): Promise<string> => {
   const driver = await boundaries.db.open();
   await boundaries.db.initialize(driver);
@@ -166,53 +166,111 @@ export const addPrescription = async (
   boundaries: AppBoundaries,
   draft: AddPrescriptionDraft
 ): Promise<AddPrescriptionResult> => {
-  logFlow("addPrescription:start", {
-    patientId: draft.patientId,
-    hasPhotoUri: Boolean(draft.photoUri.trim()),
-    tagsCount: draft.tags.length,
-    visitDate: draft.visitDate,
+  const sentryDraftData = toSentryDraftData(draft);
+  addSentryBreadcrumb({
+    category: "prescription",
+    message: "addPrescription:start",
+    data: sentryDraftData,
   });
 
   const validationError = validateDraft(draft);
   if (validationError) {
-    logFlow("addPrescription:validation-failed", {
-      errors: validationError.errors,
+    addSentryBreadcrumb({
+      category: "prescription",
+      message: "addPrescription:validation_failed",
+      level: "warning",
+      data: {
+        ...sentryDraftData,
+        result: "validation_failed",
+      },
     });
     return validationError;
   }
 
-  logFlow("addPrescription:open-db");
-  const driver = await boundaries.db.open();
-  logFlow("addPrescription:init-db");
-  await boundaries.db.initialize(driver);
-
-  logFlow("addPrescription:compress-image");
-  const compressedUri = await boundaries.imageCompression.compressImage(
-    draft.photoUri.trim()
-  );
-  logFlow("addPrescription:save-image");
-  const storedUri = await boundaries.fileStorage.saveImage(
-    compressedUri,
-    `prescription-${createId()}.${resolveStoredImageExtension(compressedUri)}`
-  );
-  logFlow("addPrescription:image-saved", { storedUri });
+  let stage = "open_db";
+  let storedUri: string | null = null;
 
   try {
-    logFlow("addPrescription:create-prescription");
-    const created = await createPrescription(driver, {
-      ...toCreatePayload(draft, storedUri),
+    const driver = await boundaries.db.open();
+    stage = "initialize_db";
+    await boundaries.db.initialize(driver);
+
+    addSentryBreadcrumb({
+      category: "prescription",
+      message: "addPrescription:image_compress_started",
+      data: sentryDraftData,
+    });
+    stage = "compress_image";
+    const compressedUri = await withSentrySpan("compress-image", "file", async () => {
+      return boundaries.imageCompression.compressImage(draft.photoUri.trim());
+    }, {
+      has_photo: sentryDraftData.has_photo,
     });
 
-    logFlow("addPrescription:success", { id: created.id });
+    stage = "save_image";
+    storedUri = await withSentrySpan("save-image", "file", async () => {
+      return boundaries.fileStorage.saveImage(
+        compressedUri,
+        `prescription-${createId()}.${resolveStoredImageExtension(compressedUri)}`
+      );
+    }, {
+      has_photo: sentryDraftData.has_photo,
+    });
+    addSentryBreadcrumb({
+      category: "prescription",
+      message: "addPrescription:image_saved",
+      data: sentryDraftData,
+    });
+
+    addSentryBreadcrumb({
+      category: "prescription",
+      message: "addPrescription:db_write_started",
+      data: sentryDraftData,
+    });
+    stage = "create_prescription";
+    const finalStoredUri = storedUri;
+    if (!finalStoredUri) {
+      throw new Error("Prescription image was not stored.");
+    }
+    const created = await withSentrySpan("create-prescription", "prescription", async () => {
+      return createPrescription(driver, {
+        ...toCreatePayload(draft, finalStoredUri),
+      });
+    }, {
+      tags_count: sentryDraftData.tags_count,
+      has_notes: sentryDraftData.has_notes,
+    });
+
+    addSentryBreadcrumb({
+      category: "prescription",
+      message: "addPrescription:success",
+      data: {
+        ...sentryDraftData,
+        result: "success",
+      },
+    });
     return {
       ok: true,
       prescription: created,
     };
   } catch (error) {
-    logFlow("addPrescription:db-failure", {
-      message: error instanceof Error ? error.message : String(error),
+    addSentryBreadcrumb({
+      category: "prescription",
+      message: "addPrescription:db_failure",
+      level: "error",
+      data: {
+        ...sentryDraftData,
+        result: "error",
+      },
     });
-    await boundaries.fileStorage.deleteFile(storedUri).catch(() => undefined);
+    if (storedUri) {
+      await boundaries.fileStorage.deleteFile(storedUri).catch(() => undefined);
+    }
+    captureSentryException(error, {
+      area: "prescription",
+      action: stage,
+      data: sentryDraftData,
+    });
     throw error;
   }
 };
@@ -221,49 +279,87 @@ export const editPrescription = async (
   boundaries: AppBoundaries,
   draft: EditPrescriptionDraft
 ): Promise<AddPrescriptionResult> => {
+  const sentryDraftData = toSentryDraftData(draft);
+  addSentryBreadcrumb({
+    category: "prescription",
+    message: "editPrescription:start",
+    data: sentryDraftData,
+  });
+
   const validationError = validateDraft(draft);
   if (validationError) {
     return validationError;
   }
 
-  const driver = await boundaries.db.open();
-  await boundaries.db.initialize(driver);
-
-  const existing = await getPrescriptionById(driver, draft.prescriptionId.trim());
-  if (!existing) {
-    return {
-      ok: false,
-      errors: {
-        prescriptionId: "prescriptionForm.notFound",
-      },
-    };
-  }
-
-  const nextPhotoUriRaw = draft.photoUri.trim();
-  const isPhotoChanged = nextPhotoUriRaw !== existing.photoUri;
-
-  let nextStoredPhotoUri = existing.photoUri;
-  let previousPhotoToDelete: string | null = null;
-
-  if (isPhotoChanged) {
-    const compressedUri = await boundaries.imageCompression.compressImage(nextPhotoUriRaw);
-    nextStoredPhotoUri = await boundaries.fileStorage.saveImage(
-      compressedUri,
-      `prescription-${createId()}.${resolveStoredImageExtension(compressedUri)}`
-    );
-    previousPhotoToDelete = existing.photoUri;
-  }
+  let stage = "open_db";
+  let nextStoredPhotoUri: string | null = null;
+  let didCreateReplacementImage = false;
 
   try {
-    const updated = await updatePrescription(
-      driver,
-      existing.id,
-      toEditPayload(draft, nextStoredPhotoUri),
-      () => boundaries.clock.nowIso()
-    );
+    const driver = await boundaries.db.open();
+    stage = "initialize_db";
+    await boundaries.db.initialize(driver);
+
+    stage = "load_existing";
+    const existing = await getPrescriptionById(driver, draft.prescriptionId.trim());
+    if (!existing) {
+      return {
+        ok: false,
+        errors: {
+          prescriptionId: "prescriptionForm.notFound",
+        },
+      };
+    }
+
+    const nextPhotoUriRaw = draft.photoUri.trim();
+    const isPhotoChanged = nextPhotoUriRaw !== existing.photoUri;
+    let previousPhotoToDelete: string | null = null;
+    nextStoredPhotoUri = existing.photoUri;
+
+    if (isPhotoChanged) {
+      addSentryBreadcrumb({
+        category: "prescription",
+        message: "editPrescription:photo_changed",
+        data: {
+          ...sentryDraftData,
+          photo_changed: true,
+        },
+      });
+      stage = "compress_image";
+      const compressedUri = await withSentrySpan("compress-image", "file", async () => {
+        return boundaries.imageCompression.compressImage(nextPhotoUriRaw);
+      }, {
+        photo_changed: true,
+      });
+
+      stage = "save_image";
+      nextStoredPhotoUri = await withSentrySpan("save-image", "file", async () => {
+        return boundaries.fileStorage.saveImage(
+          compressedUri,
+          `prescription-${createId()}.${resolveStoredImageExtension(compressedUri)}`
+        );
+      }, {
+        photo_changed: true,
+      });
+      didCreateReplacementImage = true;
+      previousPhotoToDelete = existing.photoUri;
+    }
+
+    stage = "update_prescription";
+    const updated = await withSentrySpan("update-prescription", "prescription", async () => {
+      return updatePrescription(
+        driver,
+        existing.id,
+        toEditPayload(draft, nextStoredPhotoUri ?? existing.photoUri),
+        () => boundaries.clock.nowIso()
+      );
+    }, {
+      photo_changed: didCreateReplacementImage,
+      tags_count: sentryDraftData.tags_count,
+    });
 
     if (!updated) {
-      if (isPhotoChanged) {
+      if (didCreateReplacementImage && nextStoredPhotoUri) {
         await boundaries.fileStorage.deleteFile(nextStoredPhotoUri).catch(() => undefined);
       }
 
@@ -279,14 +375,31 @@ export const editPrescription = async (
       await boundaries.fileStorage.deleteFile(previousPhotoToDelete).catch(() => undefined);
     }
 
+    addSentryBreadcrumb({
+      category: "prescription",
+      message: "editPrescription:success",
+      data: {
+        ...sentryDraftData,
+        photo_changed: didCreateReplacementImage,
+        result: "success",
+      },
+    });
     return {
       ok: true,
       prescription: updated,
     };
   } catch (error) {
-    if (isPhotoChanged) {
+    if (didCreateReplacementImage && nextStoredPhotoUri) {
       await boundaries.fileStorage.deleteFile(nextStoredPhotoUri).catch(() => undefined);
     }
+    captureSentryException(error, {
+      area: "prescription",
+      action: stage,
+      data: {
+        ...sentryDraftData,
+        photo_changed: didCreateReplacementImage,
+      },
+    });
     throw error;
   }
 };
@@ -295,16 +408,44 @@ export const deletePrescriptionWithCleanup = async (
   boundaries: AppBoundaries,
   prescriptionId: string
 ): Promise<boolean> => {
-  const driver = await boundaries.db.open();
-  await boundaries.db.initialize(driver);
+  addSentryBreadcrumb({
+    category: "prescription",
+    message: "deletePrescription:start",
+  });
 
-  const existing = await getPrescriptionById(driver, prescriptionId);
-  if (!existing) {
-    return false;
+  let stage = "open_db";
+
+  try {
+    const driver = await boundaries.db.open();
+    stage = "initialize_db";
+    await boundaries.db.initialize(driver);
+
+    stage = "load_existing";
+    const existing = await getPrescriptionById(driver, prescriptionId);
+    if (!existing) {
+      return false;
+    }
+
+    stage = "delete_prescription";
+    await withSentrySpan("delete-prescription", "prescription", async () => {
+      await deletePrescription(driver, prescriptionId);
+    });
+    stage = "delete_image";
+    await boundaries.fileStorage.deleteFile(existing.photoUri);
+
+    addSentryBreadcrumb({
+      category: "prescription",
+      message: "deletePrescription:success",
+      data: {
+        result: "success",
+      },
+    });
+    return true;
+  } catch (error) {
+    captureSentryException(error, {
+      area: "prescription",
+      action: stage,
+    });
+    throw error;
   }
-
-  await deletePrescription(driver, prescriptionId);
-  await boundaries.fileStorage.deleteFile(existing.photoUri);
-
-  return true;
 };
