@@ -17,6 +17,7 @@ type ThemePreferenceContextValue = {
   setPreference: (value: ThemePreference) => void;
   systemColorScheme: ResolvedThemeMode;
   colorScheme: ResolvedThemeMode;
+  hasHydratedPreference: boolean;
 };
 
 const noop = () => {};
@@ -28,6 +29,7 @@ const ThemePreferenceContext = createContext<ThemePreferenceContextValue>({
   setPreference: noop,
   systemColorScheme: 'light',
   colorScheme: 'light',
+  hasHydratedPreference: false,
 });
 
 const resolveSystemScheme = (value: 'light' | 'dark' | null | undefined): ResolvedThemeMode => {
@@ -163,8 +165,9 @@ export function ThemePreferenceProvider({ children }: PropsWithChildren) {
       setPreference,
       systemColorScheme,
       colorScheme,
+      hasHydratedPreference,
     };
-  }, [preference, systemColorScheme]);
+  }, [hasHydratedPreference, preference, systemColorScheme]);
 
   return <ThemePreferenceContext.Provider value={value}>{children}</ThemePreferenceContext.Provider>;
 }
