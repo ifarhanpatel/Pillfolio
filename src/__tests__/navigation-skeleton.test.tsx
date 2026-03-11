@@ -80,7 +80,8 @@ describe('Navigation skeleton screens', () => {
     const { getByText, findByTestId } = render(
       <TimelineScreen
         loadData={async () => ({
-          patient: null,
+          patients: [],
+          selectedPatientId: null,
           prescriptions: [],
         })}
       />
