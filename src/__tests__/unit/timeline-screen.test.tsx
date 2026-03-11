@@ -50,7 +50,8 @@ describe('TimelineScreen', () => {
     });
 
     const loadData = jest.fn(async () => ({
-      patient,
+      patients: [patient],
+      selectedPatientId: patient.id,
       prescriptions: [first, second],
     }));
     const { getByTestId, getByText } = render(<TimelineScreen loadData={loadData} />);
@@ -66,8 +67,9 @@ describe('TimelineScreen', () => {
     expect(getByText('Condition B')).toBeTruthy();
   });
 
-  test('passes query and search scope to loadData', async () => {
+  test('passes query and selected patient to loadData', async () => {
     const patient = patientFixture({ id: 'patient-a', name: 'Jordan' });
+    const otherPatient = patientFixture({ id: 'patient-b', name: 'Avery' });
     const byPatient = prescriptionFixture({
       id: 'patient-only',
       patientId: patient.id,
@@ -80,13 +82,16 @@ describe('TimelineScreen', () => {
     });
 
     const loadData = jest.fn(
-      async ({ query, searchAllPatients }: { query: string; searchAllPatients: boolean }) => {
+      async ({ query, selectedPatientId }: { query: string; selectedPatientId: string | null }) => {
         const all = [byPatient, globalMatch];
-        const scoped = searchAllPatients ? all : [byPatient];
+        const scoped = selectedPatientId
+          ? all.filter((item) => item.patientId === selectedPatientId)
+          : all;
         const normalized = query.trim().toLowerCase();
 
         return {
-          patient,
+          patients: [patient, otherPatient],
+          selectedPatientId,
           prescriptions: scoped.filter((item) => {
             if (!normalized) {
               return true;
@@ -102,29 +107,35 @@ describe('TimelineScreen', () => {
     const { getByTestId, queryByText } = render(<TimelineScreen loadData={loadData} />);
 
     await waitFor(() => {
-      expect(loadData).toHaveBeenLastCalledWith({ query: '', searchAllPatients: false });
+      expect(loadData).toHaveBeenLastCalledWith({ query: '', selectedPatientId: null });
     });
+
+    fireEvent.press(getByTestId(`timeline-patient-chip-${patient.id}`));
+
+    await waitFor(() => {
+      expect(loadData).toHaveBeenLastCalledWith({
+        query: '',
+        selectedPatientId: patient.id,
+      });
+    });
+    expect(queryByText('Dr. Remote')).toBeNull();
 
     fireEvent.changeText(getByTestId('timeline-search-input'), 'remote');
 
     await waitFor(() => {
       expect(loadData).toHaveBeenLastCalledWith({
         query: 'remote',
-        searchAllPatients: false,
+        selectedPatientId: patient.id,
       });
     });
-    expect(queryByText('Dr. Remote')).toBeNull();
 
-    fireEvent.press(getByTestId('timeline-search-scope-toggle'));
+    fireEvent.press(getByTestId('timeline-clear-patient-filter'));
 
     await waitFor(() => {
       expect(loadData).toHaveBeenLastCalledWith({
         query: 'remote',
-        searchAllPatients: true,
+        selectedPatientId: null,
       });
-    });
-
-    await waitFor(() => {
       expect(queryByText('Dr. Remote')).toBeTruthy();
     });
   });
