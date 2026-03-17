@@ -17,12 +17,18 @@ import {
 import { useAppLocale, useTranslation } from '@/src/i18n/LocaleProvider';
 
 export type TimelineData = {
-  patient: Patient | null;
+  patients: Patient[];
+  selectedPatientId: string | null;
   prescriptions: Prescription[];
 };
 
+type TimelineLoadInput = {
+  query: string;
+  selectedPatientId: string | null;
+};
+
 type TimelineScreenProps = {
-  loadData?: (input: { query: string; searchAllPatients: boolean }) => Promise<TimelineData>;
+  loadData?: (input: TimelineLoadInput) => Promise<TimelineData>;
   onOpenPrescription?: (prescriptionId: string) => void;
 };
 
@@ -52,30 +58,31 @@ export const sortPrescriptionsByVisitDateDesc = (
   });
 };
 
-const defaultLoadTimelineData = async (input: {
-  query: string;
-  searchAllPatients: boolean;
-}): Promise<TimelineData> => {
+const defaultLoadTimelineData = async (input: TimelineLoadInput): Promise<TimelineData> => {
   const driver = await openDb();
   await initializeDb(driver);
 
   const patients = await listPatients(driver);
-  const selectedPatient = patients.find((patient) => patient.isPrimary) ?? patients[0] ?? null;
+  const selectedPatientId = patients.some((patient) => patient.id === input.selectedPatientId)
+    ? input.selectedPatientId
+    : null;
 
-  if (!selectedPatient) {
+  if (patients.length === 0) {
     return {
-      patient: null,
+      patients: [],
+      selectedPatientId: null,
       prescriptions: [],
     };
   }
 
   const prescriptions = await searchPrescriptions(driver, {
-    patientId: selectedPatient.id,
+    patientId: selectedPatientId ?? undefined,
     query: input.query,
-    searchAllPatients: input.searchAllPatients,
+    searchAllPatients: !selectedPatientId,
   });
   return {
-    patient: selectedPatient,
+    patients,
+    selectedPatientId,
     prescriptions,
   };
 };
@@ -94,13 +101,17 @@ export function TimelineScreen({
     bottom: 0,
     left: 0,
   };
-  const [patient, setPatient] = useState<Patient | null>(null);
+  const [patients, setPatients] = useState<Patient[]>([]);
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
   const [query, setQuery] = useState('');
-  const [searchAllPatients, setSearchAllPatients] = useState(false);
+  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const selectedPatient = useMemo(
+    () => patients.find((patient) => patient.id === selectedPatientId) ?? null,
+    [patients, selectedPatientId]
+  );
 
   useEffect(() => {
     let mounted = true;
@@ -112,20 +123,27 @@ export function TimelineScreen({
       try {
         const timelineData = await loadData({
           query,
-          searchAllPatients,
+          selectedPatientId,
         });
+        const nextSelectedPatientId = timelineData.patients.some(
+          (patient) => patient.id === timelineData.selectedPatientId
+        )
+          ? timelineData.selectedPatientId
+          : null;
         if (!mounted) {
           return;
         }
 
-        setPatient(timelineData.patient);
+        setPatients(timelineData.patients);
+        setSelectedPatientId(nextSelectedPatientId);
         setPrescriptions(sortPrescriptionsByVisitDateDesc(timelineData.prescriptions));
       } catch {
         if (!mounted) {
           return;
         }
 
-        setPatient(null);
+        setPatients([]);
+        setSelectedPatientId(null);
         setPrescriptions([]);
         setErrorMessage(t('timeline.loadError'));
       } finally {
@@ -140,33 +158,27 @@ export function TimelineScreen({
     return () => {
       mounted = false;
     };
-  }, [loadData, query, searchAllPatients, t]);
+  }, [loadData, query, selectedPatientId, t]);
 
   const emptyStateMessage = useMemo(() => {
     if (query.trim()) {
-      return searchAllPatients
-        ? t('timeline.emptyMatchAll')
-        : t('timeline.emptyMatchSelected');
+      return selectedPatient ? t('timeline.emptyMatchSelected') : t('timeline.emptyMatchAll');
     }
 
-    if (searchAllPatients) {
-      return t('timeline.emptyAll');
-    }
-
-    return t('timeline.emptySelected');
-  }, [query, searchAllPatients, t]);
+    return selectedPatient ? t('timeline.emptySelected') : t('timeline.emptyAll');
+  }, [query, selectedPatient, t]);
 
   const patientSubtitle = useMemo(() => {
-    if (searchAllPatients) {
-      return t('timeline.subtitleAllPatients');
+    if (patients.length === 0) {
+      return t('timeline.noPatients');
     }
 
-    if (patient) {
-      return t('timeline.subtitleForPatient', { name: patient.name });
+    if (selectedPatient) {
+      return t('timeline.subtitleForPatient', { name: selectedPatient.name });
     }
 
-    return t('timeline.subtitleNoPatient');
-  }, [patient, searchAllPatients, t]);
+    return t('timeline.subtitleAllPatients');
+  }, [patients.length, selectedPatient, t]);
 
   const recordsSubtitle = useMemo(() => {
     return t('timeline.recordsShown', { count: prescriptions.length });
@@ -177,9 +189,15 @@ export function TimelineScreen({
     try {
       const timelineData = await loadData({
         query,
-        searchAllPatients,
+        selectedPatientId,
       });
-      setPatient(timelineData.patient);
+      const nextSelectedPatientId = timelineData.patients.some(
+        (patient) => patient.id === timelineData.selectedPatientId
+      )
+        ? timelineData.selectedPatientId
+        : null;
+      setPatients(timelineData.patients);
+      setSelectedPatientId(nextSelectedPatientId);
       setPrescriptions(sortPrescriptionsByVisitDateDesc(timelineData.prescriptions));
       setErrorMessage(null);
     } catch {
@@ -243,26 +261,57 @@ export function TimelineScreen({
         />
       </View>
 
-      <Pressable
-        style={[styles.scopeToggleButton, searchAllPatients && styles.scopeToggleButtonActive]}
-        onPress={() => setSearchAllPatients((current) => !current)}
-        testID="timeline-search-scope-toggle"
-      >
-        <ThemedText style={styles.scopeLabel}>
-          {searchAllPatients ? t('timeline.scopeAll') : t('timeline.scopeSelected')}
-        </ThemedText>
-      </Pressable>
+      {patients.length > 0 ? (
+        <View style={styles.filterRow}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.filterScroll}
+            contentContainerStyle={styles.filterContent}
+            testID="timeline-patient-filters"
+          >
+            {patients.map((filterPatient) => {
+              const isActive = filterPatient.id === selectedPatientId;
+
+              return (
+                <Pressable
+                  key={filterPatient.id}
+                  style={[styles.patientChip, isActive && styles.patientChipActive]}
+                  onPress={() => setSelectedPatientId(filterPatient.id)}
+                  testID={`timeline-patient-chip-${filterPatient.id}`}
+                >
+                  <ThemedText
+                    style={[styles.patientChipLabel, isActive && styles.patientChipLabelActive]}
+                  >
+                    {filterPatient.name}
+                  </ThemedText>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+
+          {selectedPatientId ? (
+            <Pressable
+              style={styles.clearFilterButton}
+              onPress={() => setSelectedPatientId(null)}
+              testID="timeline-clear-patient-filter"
+            >
+              <MaterialIcons name="clear" size={18} color={color('#CFDEF1')} />
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
 
       <ThemedText style={styles.monthLabel}>{t('timeline.monthPlaceholder')}</ThemedText>
 
       {isLoading ? <ThemedText style={styles.helper}>{t('timeline.loading')}</ThemedText> : null}
       {!isLoading && errorMessage ? <ThemedText style={styles.helper}>{errorMessage}</ThemedText> : null}
-      {!isLoading && !errorMessage && patient && prescriptions.length === 0 ? (
+      {!isLoading && !errorMessage && patients.length > 0 && prescriptions.length === 0 ? (
         <ThemedText style={styles.helper} testID="timeline-empty-state">
           {emptyStateMessage}
         </ThemedText>
       ) : null}
-      {!isLoading && !errorMessage && !patient ? (
+      {!isLoading && !errorMessage && patients.length === 0 ? (
         <ThemedText style={styles.helper} testID="timeline-empty-state">
           {t('timeline.noPatients')}
         </ThemedText>
@@ -344,24 +393,48 @@ const screenStyles = createAutoThemedStyles({
     lineHeight: 18,
     paddingVertical: 8,
   },
-  scopeToggleButton: {
-    borderRadius: 10,
+  filterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 12,
+  },
+  filterScroll: {
+    flex: 1,
+  },
+  filterContent: {
+    gap: 8,
+    paddingRight: 4,
+  },
+  patientChip: {
+    borderRadius: 999,
     paddingVertical: 8,
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
     borderWidth: 1,
     borderColor: '#27476D',
     backgroundColor: '#132742',
-    marginBottom: 12,
-    alignSelf: 'flex-start',
   },
-  scopeToggleButtonActive: {
+  patientChipActive: {
     borderColor: '#137FEC',
     backgroundColor: '#18406B',
   },
-  scopeLabel: {
+  patientChipLabel: {
     color: '#BBD1EC',
     fontSize: 12,
     fontWeight: '700',
+  },
+  patientChipLabelActive: {
+    color: '#E4EDF9',
+  },
+  clearFilterButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#27476D',
+    backgroundColor: '#132742',
   },
   monthLabel: {
     color: '#137FEC',

@@ -74,8 +74,6 @@ describe('Timeline and detail viewer', () => {
 
     await element(by.id('timeline-search-input')).replaceText('missing-term');
     await expect(element(by.id('timeline-empty-state'))).toBeVisible();
-    await element(by.id('timeline-search-scope-toggle')).tap();
-    await expect(element(by.id('timeline-search-scope-toggle'))).toBeVisible();
     await element(by.id('timeline-search-input')).replaceText('');
     await expect(element(by.id('timeline-search-input'))).toBeVisible();
   });
