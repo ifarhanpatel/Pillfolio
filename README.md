@@ -19,7 +19,11 @@ Optional local monitoring setup:
 cp .env.example .env
 ```
 
-Set `EXPO_PUBLIC_SENTRY_DSN` in `.env` before launching the app if you want Sentry enabled. If you already had dependencies installed before this change, rerun `yarn install` to pull `@sentry/react-native`.
+Set `EXPO_PUBLIC_SENTRY_DSN` in `.env` before launching the app if you want Sentry enabled.
+
+For EAS-enabled release workflows, also set `EAS_PROJECT_ID` after linking the app to your Expo project with `eas project:init`.
+
+If you already had dependencies installed before this change, rerun `yarn install` to pull `@sentry/react-native`.
 
 ### Sentry privacy defaults
 
@@ -31,6 +35,56 @@ Pillfolio intentionally excludes likely PHI/PII from Sentry payloads, including 
 ```bash
 yarn start
 ```
+
+## EAS release setup
+
+Pillfolio now includes EAS Build and EAS Update configuration for:
+- `development`: dev-client builds for engineering validation.
+- `preview`: internal-distribution builds for QA/testers.
+- `production`: store-ready release builds and production OTA updates.
+
+### Prerequisites
+- Expo account access for the target project.
+- Apple Developer access for iOS signing/builds.
+- Google Play Console access for Android signing/builds.
+- `EAS_PROJECT_ID` configured locally and in EAS environments after running `eas project:init`.
+- `EXPO_PUBLIC_SENTRY_DSN` configured in EAS environments if Sentry should be enabled in cloud builds.
+
+### One-time setup
+```bash
+npx eas login
+npx eas project:init
+```
+
+Copy the generated project ID into your local `.env`:
+
+```bash
+EAS_PROJECT_ID=your-project-id
+```
+
+Expo-managed credentials are the default path for this repo. During first cloud builds, EAS can generate and manage the required Android keystore, iOS certificates, and provisioning profiles.
+
+### Build commands
+```bash
+yarn eas:build:development:ios
+yarn eas:build:development:android
+yarn eas:build:preview:ios
+yarn eas:build:preview:android
+yarn eas:build:production:ios
+yarn eas:build:production:android
+```
+
+### OTA update commands
+```bash
+yarn eas:update:preview --message "Preview QA update"
+yarn eas:update:production --message "Production hotfix"
+```
+
+Channels and branches are aligned by environment:
+- `preview` builds consume updates from the `preview` channel/branch.
+- `production` builds consume updates from the `production` channel/branch.
+
+Only publish OTA updates for JavaScript and config-safe changes. Any change to native dependencies, config plugins, or native project settings requires a new binary build.
 
 ## Scripts
 - `yarn lint`: ESLint checks.
@@ -51,7 +105,7 @@ yarn start
 
 ### Android E2E: "waiting for ready" / first-time setup
 
-The Android app must include Detox's native module so it can connect to the test runner and send "ready". The project uses **expo-detox-config-plugin** in `app.json`; it is applied when you run `expo prebuild`. After adding or updating the plugin, **regenerate the native Android project** and rebuild:
+The Android app must include Detox's native module so it can connect to the test runner and send "ready". The project uses **expo-detox-config-plugin** in the Expo app config (`app.json` wrapped by `app.config.ts`); it is applied when you run `expo prebuild`. After adding or updating the plugin, **regenerate the native Android project** and rebuild:
 
 ```bash
 yarn prebuild:android --clean
